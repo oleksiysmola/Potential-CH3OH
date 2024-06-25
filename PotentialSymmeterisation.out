@@ -10,10 +10,16 @@ Reading z-matrix...
    5 │ H           1      2         3         2   1.00783
    6 │ H           1      2         3         2   1.00783
 Obtained z-matrix!
-Defining reference geometry...
+
+Defining local mode coordinates...
+[:r_CH, :r_OH, :r_1, :r_2, :r_3]
+Num[r_CH, r_OH, r_1, r_2, r_3, alpha_COH, alpha_1, alpha_2, alpha_3, d_1, d_2, d_3]
+r_1 + r_2
 Done!
+
 Obtaining symmetry operations...
 Done!
+
 Generating initial potential parameters...
 2126×14 DataFrame
   Row │ Labels         i      j      k      l      m      n      o      p      q      r      s      t      Parameters
@@ -2146,3 +2152,4 @@ Generating initial potential parameters...
  2125 │ f600000000000      6      0      0      0      0      0      0      0      0      0      0      0         0.0
  2126 │ h600000000000      6      0      0      0      0      0      0      0      0      0      0      0         0.0
 Done!
+r_1

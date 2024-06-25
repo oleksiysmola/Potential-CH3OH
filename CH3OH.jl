@@ -1,4 +1,4 @@
-function computeCartesianCoordinates(localModeCoordinates, case="bond-fixed-dihedral")
+function computeCartesianCoordinates(localModeCoordinates::Vector{Symbolics.Num}, case="bond-fixed-dihedral"::String)
     cartesianCoordinates = zeros(6, 3)
     if case == "bond-fixed-dihedral"
         # O
@@ -22,7 +22,7 @@ function computeCartesianCoordinates(localModeCoordinates, case="bond-fixed-dihe
     return cartesianCoordinates
 end
 
-function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)")
+function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)"::String)
     permuation123 = Int64[0 1 0; 0 0 1; 1 0 0]
     permuation132 = Int64[0 0 1; 1 0 0; 0 1 0]
     permutationInversion12 = Int64[0 1; 1 0]
@@ -50,7 +50,7 @@ function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)")
     return localModeSymmetryOperations
 end
 
-function generateSymmetryOperationsCartesianRepresentation(zMatrix, case="C3v(M)")
+function generateSymmetryOperationsCartesianRepresentation(zMatrix::DataFrame, case="C3v(M)"::String)
     if case == "C3v(M)"
         cartesianSymmetryOperations = zeros(Int64, 6, 18, 18)
         cartesianSymmetryOperations[1, :, :] = matrix(1I, 18, 18)
@@ -58,7 +58,7 @@ function generateSymmetryOperationsCartesianRepresentation(zMatrix, case="C3v(M)
     return cartesianSymmetryOperations
 end
 
-function generateInitialPotentialParameters(maxOrder=6, maxMultiMode=2)
+function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)
     label = String[]
     iPower = Vector{Int64}()
     jPower = Vector{Int64}()

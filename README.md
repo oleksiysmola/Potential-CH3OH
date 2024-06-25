@@ -1,2 +1,2 @@
 ## Symmetric Potentials
-Symmeterisation of potentials with Julia. Very preliminary currently
+Symmeterisation of potentials for polyatomic molecules with Julia. Very preliminary currently
