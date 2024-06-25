@@ -1,24 +1,23 @@
 using DataFrames
 using LinearAlgebra
 using Symbolics
-using Latexify
 
-molecule = "CH3OH"
+molecule::String = "CH3OH"
 include("$(molecule).jl")
 
-zMatrixFile = "z-matrix-$(molecule).txt"
-nuclei = String[]
-bondedToNucleus = Int64[]
-bondLengths = String[]
-angleToNucleus = Int64[]
-bondAngles = String[]
-dihedralToNucleus = Int64[]
-dihedralAngles = String[]
-nonRigid = Int64[]
-nuclearMasses = Vector{Float64}()
+zMatrixFile::String = "z-matrix-$(molecule).txt"
+nuclei::Array{String} = String[]
+bondedToNucleus::Array{Int64} = Int64[]
+bondLengths::Array{String} = String[]
+angleToNucleus::Array{Int64} = Int64[]
+bondAngles::Array{String} = String[]
+dihedralToNucleus::Array{Int64} = Int64[]
+dihedralAngles::Array{String} = String[]
+nonRigid::Array{Int64} = Int64[]
+nuclearMasses::Array{Float64} = Vector{Float64}()
 println("Reading z-matrix...")
 for line in eachline(zMatrixFile)
-    splitLine = split(line, r"\s+")
+    splitLine::Array{SubString{String}, 1} = split(line, r"\s+")
     push!(nuclei, splitLine[2])
     push!(bondedToNucleus, parse(Int64, splitLine[3]))
     push!(bondLengths, splitLine[4])
@@ -29,51 +28,47 @@ for line in eachline(zMatrixFile)
     push!(nonRigid, parse(Int64, splitLine[9]))
     push!(nuclearMasses, parse(Float64, splitLine[10]))
 end
-zMatrix = DataFrame(Nuclei = nuclei, Bond = bondedToNucleus, Angle = angleToNucleus,
+zMatrix::DataFrame = DataFrame(Nuclei = nuclei, Bond = bondedToNucleus, Angle = angleToNucleus,
     Dihedral = dihedralToNucleus, NonRigid = nonRigid, Mass = nuclearMasses,     
 )
 println(zMatrix)
 println("Obtained z-matrix!")
 println("")
 println("Defining local mode coordinates...")
-numberOfAtoms = size(zMatrix)[1]
-numberOfVibrationalModes = numberOfAtoms*3 - 6
-convertToRadians = 2*pi/360
-localModeCoordinates = Vector{Symbolics.Num}()
-bondLengths = Symbol.(bondLengths[2:numberOfAtoms])
-bondAngles = Symbol.(bondAngles[3:numberOfAtoms])
-dihedralAngles = Symbol.(dihedralAngles[4:numberOfAtoms])
-for bondLength in bondLengths
+numberOfAtoms::Int64 = size(zMatrix)[1]
+numberOfVibrationalModes::Int64 = numberOfAtoms*3 - 6
+localModeCoordinates::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
+bondLengthSymbols::Vector{Symbol} = Symbol.(bondLengths[2:numberOfAtoms])
+bondAnglesSymbols::Vector{Symbol} = Symbol.(bondAngles[3:numberOfAtoms])
+dihedralAnglesSymbols::Vector{Symbol} = Symbol.(dihedralAngles[4:numberOfAtoms])
+for bondLength in bondLengthSymbols
     @eval @variables $bondLength
     push!(localModeCoordinates, eval(bondLength))
 end
-for bondAngle in bondAngles
+for bondAngle in bondAnglesSymbols
     @eval @variables $bondAngle
     push!(localModeCoordinates, eval(bondAngle))
 end
-for dihedral in dihedralAngles
+for dihedral in dihedralAnglesSymbols
     @eval @variables $dihedral
     push!(localModeCoordinates, eval(dihedral))
 end
-println(localModeCoordinates)
-println(localModeCoordinates[3] + localModeCoordinates[4])
 println("Done!")
 println("")
 
 println("Obtaining symmetry operations...")
-localModeSymmetryOperations = generateSymmetryOperationsLocalModeRepresentation()
+localModeSymmetryOperations::Array{Int64} = generateSymmetryOperationsLocalModeRepresentation()
+println("Done!")
+println("")
+
+println("Generating xi coordinates...")
+xi::Vector{Symbolics.Num} = generateXiCoordinates(localModeCoordinates)
+println(xi)
 println("Done!")
 println("")
 
 println("Generating initial potential parameters...")
-potentialParameters = generateInitialPotentialParameters()
+@time potentialParameters::DataFrame = generateInitialPotentialParameters()
 println(potentialParameters)
-# for (label, parameter) in potentialParameters
-#     println("$label  $parameter")
-# end
 println("Done!")
-x = Symbol("r_1")
-@eval @variables $x
-println(r_1)
-# println(expr2)
-
+println("")

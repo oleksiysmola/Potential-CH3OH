@@ -22,15 +22,17 @@ function computeCartesianCoordinates(localModeCoordinates::Vector{Symbolics.Num}
     return cartesianCoordinates
 end
 
-function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)"::String)
-    permuation123 = Int64[0 1 0; 0 0 1; 1 0 0]
-    permuation132 = Int64[0 0 1; 1 0 0; 0 1 0]
-    permutationInversion12 = Int64[0 1; 1 0]
-    permutationInversion23 = Int64[0 1; 1 0]
-    permutationInversion13 = Int64[0 0 1; 0 1 0; 1 0 0]
+function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)"::String)::Array{Int64}
+    permuation123::Matrix{Int64} = Int64[0 1 0; 0 0 1; 1 0 0]
+    permuation132::Matrix{Int64} = Int64[0 0 1; 1 0 0; 0 1 0]
+    permutationInversion12::Matrix{Int64} = Int64[0 1; 1 0]
+    permutationInversion23::Matrix{Int64} = Int64[0 1; 1 0]
+    permutationInversion13::Matrix{Int64} = Int64[0 0 1; 0 1 0; 1 0 0]
     if case == "C3v(M)"
-        localModeSymmetryOperations = zeros(Int64, 6, 12, 12)
-        localModeSymmetryOperations[1, :, :] = Matrix(1I, 12, 12)
+        localModeSymmetryOperations::Array{Int64} = zeros(Int64, 6, 12, 12)
+        for i in 1:6
+            localModeSymmetryOperations[i, :, :] = Matrix(1I, 12, 12)
+        end
         localModeSymmetryOperations[2, 3:5, 3:5] = permuation123
         localModeSymmetryOperations[2, 7:9, 7:9] = permuation123
         localModeSymmetryOperations[2, 10:12, 10:12] = permuation123
@@ -58,21 +60,62 @@ function generateSymmetryOperationsCartesianRepresentation(zMatrix::DataFrame, c
     return cartesianSymmetryOperations
 end
 
-function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)
-    label = String[]
-    iPower = Vector{Int64}()
-    jPower = Vector{Int64}()
-    kPower = Vector{Int64}()
-    lPower = Vector{Int64}()
-    mPower = Vector{Int64}()
-    nPower = Vector{Int64}()
-    oPower = Vector{Int64}()
-    pPower = Vector{Int64}()
-    qPower = Vector{Int64}()
-    rPower = Vector{Int64}()
-    sPower = Vector{Int64}()
-    tPower = Vector{Int64}()
-    parameters = Vector{Float64}()
+function generateXiCoordinates(localModeCoordinates::Vector{Symbolics.Num})::Vector{Symbolics.Num}
+    convertToRadians::Float64 = 2*pi/360
+    # Define equilibrium parameters
+    rCOeq::Float64 = 1.4296
+    rOHeq::Float64 = 0.95887
+    rH1eq::Float64 = 1.092294
+    alphaCOHeq::Float64 = 107.9812*convertToRadians
+    alphaOCHeq::Float64 = 110.6646*convertToRadians
+    a1::Float64 = 1.44
+    a2::Float64 = 1.66
+    b1::Float64 = 1.55
+    
+    xi::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
+    
+    # Stretches
+    push!(xi, 1.00 - exp(-a1*(localModeCoordinates[1] - rCOeq)))
+    push!(xi, 1.00 - exp(-a2*(localModeCoordinates[2] - rOHeq)))
+    push!(xi, 1.00 - exp(-b1*(localModeCoordinates[3] - rH1eq)))
+    push!(xi, 1.00 - exp(-b1*(localModeCoordinates[4] - rH1eq)))
+    push!(xi, 1.00 - exp(-b1*(localModeCoordinates[5] - rH1eq)))
+
+    # Angles
+    push!(xi, localModeCoordinates[6] - alphaCOHeq)
+    push!(xi, localModeCoordinates[7] - alphaOCHeq)
+    push!(xi, localModeCoordinates[8] - alphaOCHeq)
+    push!(xi, localModeCoordinates[9] - alphaOCHeq)
+
+    # Define symmeterised dihedrals
+    d12::Symbolics.Num = localModeCoordinates[11] - localModeCoordinates[10]
+    d23::Symbolics.Num = localModeCoordinates[12] - localModeCoordinates[11]
+    d13::Symbolics.Num = localModeCoordinates[10] - localModeCoordinates[12]
+    push!(xi, (2*d23 - d13 - d12)/sqrt(6))
+    push!(xi, (d13 - d12)/sqrt(2))
+    
+    # Torsion angle
+    tau::Symbolics.Num = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
+    push!(xi, tau)
+
+    return xi
+end
+
+function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)::DataFrame
+    label::Vector{String} = String[]
+    iPower::Vector{Int64} = Vector{Int64}()
+    jPower::Vector{Int64} = Vector{Int64}()
+    kPower::Vector{Int64} = Vector{Int64}()
+    lPower::Vector{Int64} = Vector{Int64}()
+    mPower::Vector{Int64} = Vector{Int64}()
+    nPower::Vector{Int64} = Vector{Int64}()
+    oPower::Vector{Int64} = Vector{Int64}()
+    pPower::Vector{Int64} = Vector{Int64}()
+    qPower::Vector{Int64} = Vector{Int64}()
+    rPower::Vector{Int64} = Vector{Int64}()
+    sPower::Vector{Int64} = Vector{Int64}()
+    tPower::Vector{Int64} = Vector{Int64}()
+    parameters::Vector{Float64} = Vector{Float64}()
     for i in 0:maxOrder
         for j in 0:maxOrder-i
             for k in 0:maxOrder-(i+j)
@@ -164,7 +207,7 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
             end
         end
     end
-    potentialParameters = DataFrame(Labels=label, i=iPower, j=jPower, k=kPower, l=lPower, m=mPower,
+    potentialParameters::DataFrame = DataFrame(Labels=label, i=iPower, j=jPower, k=kPower, l=lPower, m=mPower,
                         n=nPower, o=oPower, p=pPower, q=qPower, r=rPower, s=sPower, t=tPower, Parameters=parameters
     )
     return potentialParameters
