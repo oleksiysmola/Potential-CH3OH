@@ -102,7 +102,7 @@ function generateXiCoordinates(localModeCoordinates::Vector{Symbolics.Num})::Vec
 end
 
 function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)::DataFrame
-    label::Vector{String} = String[]
+    label::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
     iPower::Vector{Int64} = Vector{Int64}()
     jPower::Vector{Int64} = Vector{Int64}()
     kPower::Vector{Int64} = Vector{Int64}()
@@ -162,11 +162,10 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
                                                     if s >= 1
                                                         multiMode = multiMode + 1
                                                     end
-                                                    if t >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
                                                     if multiMode <= maxMultiMode
-                                                        push!(label, "f$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
+                                                        fLabel::Symbol = Symbol("f$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
+                                                        @eval @variables $fLabel
+                                                        push!(label, eval(fLabel))
                                                         push!(iPower, i)
                                                         push!(jPower, j)
                                                         push!(kPower, k)
@@ -180,7 +179,9 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
                                                         push!(sPower, s)
                                                         push!(tPower, t)
                                                         push!(parameters, 0.0000)
-                                                        push!(label, "h$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
+                                                        hLabel::Symbol = Symbol("h$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
+                                                        @eval @variables $hLabel
+                                                        push!(label, eval(hLabel))
                                                         push!(iPower, i)
                                                         push!(jPower, j)
                                                         push!(kPower, k)
@@ -207,8 +208,57 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
             end
         end
     end
-    potentialParameters::DataFrame = DataFrame(Labels=label, i=iPower, j=jPower, k=kPower, l=lPower, m=mPower,
-                        n=nPower, o=oPower, p=pPower, q=qPower, r=rPower, s=sPower, t=tPower, Parameters=parameters
+    potentialParameters::DataFrame = DataFrame(Labels=label, iIndex=iPower, jIndex=jPower, kIndex=kPower, lIndex=lPower, mIndex=mPower,
+                        nIndex=nPower, oIndex=oPower, pIndex=pPower, qIndex=qPower, rIndex=rPower, sIndex=sPower, tIndex=tPower, Parameters=parameters
     )
     return potentialParameters
+end
+
+function symmeterisePotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{Symbolics.Num}, symmetryOperations::Array{Int64})::DataFrame
+    totalNumberOfParameters::Int64 = size(potentialParameters)[1]
+    numberOfModes::Int64 = size(localModeCoordinates)[1]
+    numberOfTransformations::Int64 = size(symmetryOperations)[1] + 1 # Also counts untransformed coordinates
+
+    # Defining xi before and after each of the symmetry operations is applied to it
+    xiMatrix::Matrix{Symbolics.Num} = Matrix{Symbolics.Num}(zeros(numberOfTransformations, numberOfModes))
+    xiMatrix[1, :] = generateXiCoordinates(localModeCoordinates)
+    xiMatrix[2, :] = generateXiCoordinates(symmetryOperations[1, :, :]*localModeCoordinates)
+    xiMatrix[3, :] = generateXiCoordinates(symmetryOperations[2, :, :]*localModeCoordinates)
+    xiMatrix[4, :] = generateXiCoordinates(symmetryOperations[3, :, :]*localModeCoordinates)
+    xiMatrix[5, :] = generateXiCoordinates(symmetryOperations[4, :, :]*localModeCoordinates)
+    xiMatrix[6, :] = generateXiCoordinates(symmetryOperations[5, :, :]*localModeCoordinates)
+    xiMatrix[7, :] = generateXiCoordinates(symmetryOperations[6, :, :]*localModeCoordinates)
+    xiPowers::Matrix{Symbolics.Num} = Matrix{Symbolics.Num}(ones(totalNumberOfParameters, numberOfTransformations))
+    for row in 1:totalNumberOfParameters
+        if "$(string(potentialParameters[row, :Labels][1])[1])" == "f"
+            for transformation in 1:numberOfTransformations
+                xiPower::Symbolics.Num = 1.0
+                for mode in 1:numberOfModes-1
+                    xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
+                end
+                xiPower = xiPower*cos(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
+                xiPowers[row, transformation] = xiPower
+                # xiPowers[row, transformation] = xiMatrix[transformation, 1]^potentialParameters[row, :iIndex]*xiMatrix[transformation, 2]^potentialParameters[row, :jIndex]*xiMatrix[transformation, 3]^potentialParameters[row, :kIndex]*xiMatrix[transformation, 4]^potentialParameters[row, :lIndex]*xiMatrix[transformation, 5]^potentialParameters[row, :mIndex]*xiMatrix[transformation, 6]^potentialParameters[row, :nIndex]*xiMatrix[transformation, 7]^potentialParameters[row, :oIndex]*xiMatrix[transformation, 8]^potentialParameters[row, :pIndex]*xiMatrix[transformation, 9]^potentialParameters[row, :qIndex]*xiMatrix[transformation, 10]^potentialParameters[row, :rIndex]*xiMatrix[transformation, 11]^potentialParameters[row, :sIndex]*cos(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
+            end
+        else
+            for transformation in 1:numberOfTransformations
+                xiPower::Symbolics.Num = 1.0
+                for mode in 1:numberOfModes-1
+                    xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
+                end
+                xiPower = xiPower*sin(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
+                xiPowers[row, transformation] = xiPower            
+                # xiPowers[row, transformation] = xiMatrix[transformation, 1]^potentialParameters[row, :iIndex]*xiMatrix[transformation, 2]^potentialParameters[row, :jIndex]*xiMatrix[transformation, 3]^potentialParameters[row, :kIndex]*xiMatrix[transformation, 4]^potentialParameters[row, :lIndex]*xiMatrix[transformation, 5]^potentialParameters[row, :mIndex]*xiMatrix[transformation, 6]^potentialParameters[row, :nIndex]*xiMatrix[transformation, 7]^potentialParameters[row, :oIndex]*xiMatrix[transformation, 8]^potentialParameters[row, :pIndex]*xiMatrix[transformation, 9]^potentialParameters[row, :qIndex]*xiMatrix[transformation, 10]^potentialParameters[row, :rIndex]*xiMatrix[transformation, 11]^potentialParameters[row, :sIndex]*sin(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
+            end
+        end
+    end
+    potentialTerms::DataFrame = potentialParameters
+    insertcols!(potentialTerms, 15, :xi => xiPowers[:, 1])
+    insertcols!(potentialTerms, 16, :xi1 => xiPowers[:, 2])
+    insertcols!(potentialTerms, 17, :xi2 => xiPowers[:, 3])
+    insertcols!(potentialTerms, 18, :xi3 => xiPowers[:, 4])
+    insertcols!(potentialTerms, 19, :xi4 => xiPowers[:, 5])
+    insertcols!(potentialTerms, 20, :xi5 => xiPowers[:, 6])
+    insertcols!(potentialTerms, 21, :xi6 => xiPowers[:, 7])
+    return potentialTerms
 end
