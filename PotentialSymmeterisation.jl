@@ -74,7 +74,20 @@ println("Done!")
 println("")
 
 println("Symmetrerise potential...")
-@time potentialTerms::DataFrame = symmeterisePotentialTermsLocalMode(potentialParameters, localModeCoordinates, symmetryOperations)
+@time potentialTerms::DataFrame = obtainTransformedPotentialTermsLocalMode(potentialParameters, localModeCoordinates, symmetryOperations)
 println(potentialTerms)
+numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
+potentials::Vector{Symbolics.Num} = zeros(numberOfSymmetryOperations + 1)
+for i in 1:size(potentialTerms)[1]
+    for j in 1:size(potentials)[1]
+        potentials[j] = potentials[j] + potentialTerms[i, names(potentialTerms)[1]]*potentialTerms[i, names(potentialTerms)[j + numberOfVibrationalModes + 2]]
+    end
+end
+equations::Vector{Equation} = Vector{Equation}()
+for i in 2:size(potentials)[1]
+    push!(equations, potentials[i] - potentials[1] ~ 0)
+end
+@time solutions = Symbolics.solve_for(equations, potentialTerms[:, :Labels])
+println(solutions)
 println("Done!")
 println("")

@@ -214,7 +214,7 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
     return potentialParameters
 end
 
-function symmeterisePotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{Symbolics.Num}, symmetryOperations::Array{Int64})::DataFrame
+function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{Symbolics.Num}, symmetryOperations::Array{Int64})::DataFrame
     totalNumberOfParameters::Int64 = size(potentialParameters)[1]
     numberOfModes::Int64 = size(localModeCoordinates)[1]
     numberOfTransformations::Int64 = size(symmetryOperations)[1] + 1 # Also counts untransformed coordinates
@@ -238,7 +238,6 @@ function symmeterisePotentialTermsLocalMode(potentialParameters::DataFrame, loca
                 end
                 xiPower = xiPower*cos(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
                 xiPowers[row, transformation] = xiPower
-                # xiPowers[row, transformation] = xiMatrix[transformation, 1]^potentialParameters[row, :iIndex]*xiMatrix[transformation, 2]^potentialParameters[row, :jIndex]*xiMatrix[transformation, 3]^potentialParameters[row, :kIndex]*xiMatrix[transformation, 4]^potentialParameters[row, :lIndex]*xiMatrix[transformation, 5]^potentialParameters[row, :mIndex]*xiMatrix[transformation, 6]^potentialParameters[row, :nIndex]*xiMatrix[transformation, 7]^potentialParameters[row, :oIndex]*xiMatrix[transformation, 8]^potentialParameters[row, :pIndex]*xiMatrix[transformation, 9]^potentialParameters[row, :qIndex]*xiMatrix[transformation, 10]^potentialParameters[row, :rIndex]*xiMatrix[transformation, 11]^potentialParameters[row, :sIndex]*cos(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
             end
         else
             for transformation in 1:numberOfTransformations
@@ -248,7 +247,6 @@ function symmeterisePotentialTermsLocalMode(potentialParameters::DataFrame, loca
                 end
                 xiPower = xiPower*sin(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
                 xiPowers[row, transformation] = xiPower            
-                # xiPowers[row, transformation] = xiMatrix[transformation, 1]^potentialParameters[row, :iIndex]*xiMatrix[transformation, 2]^potentialParameters[row, :jIndex]*xiMatrix[transformation, 3]^potentialParameters[row, :kIndex]*xiMatrix[transformation, 4]^potentialParameters[row, :lIndex]*xiMatrix[transformation, 5]^potentialParameters[row, :mIndex]*xiMatrix[transformation, 6]^potentialParameters[row, :nIndex]*xiMatrix[transformation, 7]^potentialParameters[row, :oIndex]*xiMatrix[transformation, 8]^potentialParameters[row, :pIndex]*xiMatrix[transformation, 9]^potentialParameters[row, :qIndex]*xiMatrix[transformation, 10]^potentialParameters[row, :rIndex]*xiMatrix[transformation, 11]^potentialParameters[row, :sIndex]*sin(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
             end
         end
     end

@@ -22,7 +22,7 @@ Num[1.0 - exp(-1.44(-1.4296 + r_CH)), 1.0 - exp(-1.66(-0.95887 + r_OH)), 1.0 - e
 Done!
 
 Generating initial potential parameters...
-  1.501701 seconds (720.47 k allocations: 36.096 MiB, 1.80% gc time, 1.14% compilation time)
+  1.591670 seconds (720.47 k allocations: 36.096 MiB, 2.17% gc time, 1.14% compilation time)
 4326×14 DataFrame
   Row │ Labels         iIndex  jIndex  kIndex  lIndex  mIndex  nIndex  oIndex  pIndex  qIndex  rIndex  sIndex  tIndex  Parameters
       │ Num            Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Float64
@@ -4356,7 +4356,7 @@ Generating initial potential parameters...
 Done!
 
 Symmetrerise potential...
-  1.595029 seconds (11.03 M allocations: 402.431 MiB, 6.68% gc time, 63.58% compilation time)
+  1.799504 seconds (11.03 M allocations: 402.431 MiB, 7.51% gc time, 64.86% compilation time)
 4326×21 DataFrame
   Row │ Labels         iIndex  jIndex  kIndex  lIndex  mIndex  nIndex  oIndex  pIndex  qIndex  rIndex  sIndex  tIndex  Parameters  xi                                 xi1                                xi2                                xi3                                xi4                                xi5                                xi6
       │ Num            Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Int64   Float64     Num                                Num                                Num                                Num                                Num                                Num                                Num
@@ -8687,5 +8687,3 @@ Symmetrerise potential...
  4324 │ h510000000000       5       1       0       0       0       0       0       0       0       0       0       0         0.0                                  …                                  …                                  …                                  …                                  …                                  …                                  …
  4325 │ f600000000000       6       0       0       0       0       0       0       0       0       0       0       0         0.0                                 (…                                 (…                                 (…                                 (…                                 (…                                 (…                                 (…
  4326 │ h600000000000       6       0       0       0       0       0       0       0       0       0       0       0         0.0                                  …                                  …                                  …                                  …                                  …                                  …                                  …
-Done!
-
