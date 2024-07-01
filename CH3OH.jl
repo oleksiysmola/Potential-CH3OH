@@ -1,4 +1,4 @@
-function computeCartesianCoordinates(localModeCoordinates::Vector{Symbolics.Num}, case="bond-fixed-dihedral"::String)
+function computeCartesianCoordinates(localModeCoordinates::Vector{SymPy.Sym}, case="bond-fixed-dihedral"::String)
     cartesianCoordinates = zeros(6, 3)
     if case == "bond-fixed-dihedral"
         # O
@@ -60,7 +60,7 @@ function generateSymmetryOperationsCartesianRepresentation(zMatrix::DataFrame, c
     return cartesianSymmetryOperations
 end
 
-function generateXiCoordinates(localModeCoordinates::Vector{Symbolics.Num})::Vector{Symbolics.Num}
+function generateXiCoordinates(localModeCoordinates::Vector{SymPy.Sym})::Vector{SymPy.Sym}
     convertToRadians::Float64 = 2*pi/360
     # Define equilibrium parameters
     rCOeq::Float64 = 1.4296
@@ -72,7 +72,7 @@ function generateXiCoordinates(localModeCoordinates::Vector{Symbolics.Num})::Vec
     a2::Float64 = 1.66
     b1::Float64 = 1.55
     
-    xi::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
+    xi::Vector{SymPy.Sym} = Vector{SymPy.Sym}()
     
     # Stretches
     push!(xi, 1.00 - exp(-a1*(localModeCoordinates[1] - rCOeq)))
@@ -88,21 +88,21 @@ function generateXiCoordinates(localModeCoordinates::Vector{Symbolics.Num})::Vec
     push!(xi, localModeCoordinates[9] - alphaOCHeq)
 
     # Define symmeterised dihedrals
-    d12::Symbolics.Num = localModeCoordinates[11] - localModeCoordinates[10]
-    d23::Symbolics.Num = localModeCoordinates[12] - localModeCoordinates[11]
-    d13::Symbolics.Num = localModeCoordinates[10] - localModeCoordinates[12]
+    d12::SymPy.Sym = localModeCoordinates[11] - localModeCoordinates[10]
+    d23::SymPy.Sym = localModeCoordinates[12] - localModeCoordinates[11]
+    d13::SymPy.Sym = localModeCoordinates[10] - localModeCoordinates[12]
     push!(xi, (2*d23 - d13 - d12)/sqrt(6))
     push!(xi, (d13 - d12)/sqrt(2))
     
     # Torsion angle
-    tau::Symbolics.Num = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
+    tau::SymPy.Sym = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
     push!(xi, tau)
 
     return xi
 end
 
 function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)::DataFrame
-    label::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
+    label::Vector{SymPy.Sym} = Vector{SymPy.Sym}()
     iPower::Vector{Int64} = Vector{Int64}()
     jPower::Vector{Int64} = Vector{Int64}()
     kPower::Vector{Int64} = Vector{Int64}()
@@ -163,9 +163,7 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
                                                         multiMode = multiMode + 1
                                                     end
                                                     if multiMode <= maxMultiMode
-                                                        fLabel::Symbol = Symbol("f$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
-                                                        @eval @variables $fLabel
-                                                        push!(label, eval(fLabel))
+                                                        push!(label, SymPy.Sym("f$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)"))
                                                         push!(iPower, i)
                                                         push!(jPower, j)
                                                         push!(kPower, k)
@@ -179,9 +177,7 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
                                                         push!(sPower, s)
                                                         push!(tPower, t)
                                                         push!(parameters, 0.0000)
-                                                        hLabel::Symbol = Symbol("h$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)")
-                                                        @eval @variables $hLabel
-                                                        push!(label, eval(hLabel))
+                                                        push!(label, SymPy.Sym("h$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)"))
                                                         push!(iPower, i)
                                                         push!(jPower, j)
                                                         push!(kPower, k)
@@ -214,13 +210,13 @@ function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::I
     return potentialParameters
 end
 
-function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{Symbolics.Num}, symmetryOperations::Array{Int64})::DataFrame
+function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{SymPy.Sym}, symmetryOperations::Array{Int64})::DataFrame
     totalNumberOfParameters::Int64 = size(potentialParameters)[1]
     numberOfModes::Int64 = size(localModeCoordinates)[1]
     numberOfTransformations::Int64 = size(symmetryOperations)[1] + 1 # Also counts untransformed coordinates
 
     # Defining xi before and after each of the symmetry operations is applied to it
-    xiMatrix::Matrix{Symbolics.Num} = Matrix{Symbolics.Num}(zeros(numberOfTransformations, numberOfModes))
+    xiMatrix::Matrix{SymPy.Sym} = Matrix{SymPy.Sym}(zeros(numberOfTransformations, numberOfModes))
     xiMatrix[1, :] = generateXiCoordinates(localModeCoordinates)
     xiMatrix[2, :] = generateXiCoordinates(symmetryOperations[1, :, :]*localModeCoordinates)
     xiMatrix[3, :] = generateXiCoordinates(symmetryOperations[2, :, :]*localModeCoordinates)
@@ -228,11 +224,11 @@ function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame
     xiMatrix[5, :] = generateXiCoordinates(symmetryOperations[4, :, :]*localModeCoordinates)
     xiMatrix[6, :] = generateXiCoordinates(symmetryOperations[5, :, :]*localModeCoordinates)
     xiMatrix[7, :] = generateXiCoordinates(symmetryOperations[6, :, :]*localModeCoordinates)
-    xiPowers::Matrix{Symbolics.Num} = Matrix{Symbolics.Num}(ones(totalNumberOfParameters, numberOfTransformations))
+    xiPowers::Matrix{SymPy.Sym} = Matrix{SymPy.Sym}(ones(totalNumberOfParameters, numberOfTransformations))
     for row in 1:totalNumberOfParameters
         if "$(string(potentialParameters[row, :Labels][1])[1])" == "f"
             for transformation in 1:numberOfTransformations
-                xiPower::Symbolics.Num = 1.0
+                xiPower::SymPy.Sym = 1.0
                 for mode in 1:numberOfModes-1
                     xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
                 end
@@ -241,7 +237,7 @@ function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame
             end
         else
             for transformation in 1:numberOfTransformations
-                xiPower::Symbolics.Num = 1.0
+                xiPower::SymPy.Sym = 1.0
                 for mode in 1:numberOfModes-1
                     xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
                 end

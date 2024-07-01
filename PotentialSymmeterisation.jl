@@ -1,9 +1,28 @@
 using DataFrames
 using LinearAlgebra
-using Symbolics
+using Distributed
+using SymPy
+using Base.Threads
+println(Base.Threads.nthreads())
+
+# Access the dynamically created symbols
+x = SymPy.Sym("r_1")
+
+# Create and manipulate expressions using the dynamic symbols
+expr = x^2  - 1 
+println("Expression: ", expr)
+println(diff(expr, x))
+println(solve(expr, x))
 
 molecule::String = "CH3OH"
 include("$(molecule).jl")
+
+addprocs(8)
+
+@everywhere using DataFrames
+@everywhere using LinearAlgebra
+@everywhere using SymPy
+
 
 zMatrixFile::String = "z-matrix-$(molecule).txt"
 nuclei::Array{String} = String[]
@@ -37,22 +56,20 @@ println("")
 println("Defining local mode coordinates...")
 numberOfAtoms::Int64 = size(zMatrix)[1]
 numberOfVibrationalModes::Int64 = numberOfAtoms*3 - 6
-localModeCoordinates::Vector{Symbolics.Num} = Vector{Symbolics.Num}()
-bondLengthSymbols::Vector{Symbol} = Symbol.(bondLengths[2:numberOfAtoms])
-bondAnglesSymbols::Vector{Symbol} = Symbol.(bondAngles[3:numberOfAtoms])
-dihedralAnglesSymbols::Vector{Symbol} = Symbol.(dihedralAngles[4:numberOfAtoms])
+localModeCoordinates::Vector{SymPy.Sym} = Vector{SymPy.Sym}()
+bondLengthSymbols::Vector{SymPy.Sym} = SymPy.Sym.(bondLengths[2:numberOfAtoms])
+bondAnglesSymbols::Vector{SymPy.Sym} = SymPy.Sym.(bondAngles[3:numberOfAtoms])
+dihedralAnglesSymbols::Vector{SymPy.Sym} = SymPy.Sym.(dihedralAngles[4:numberOfAtoms])
 for bondLength in bondLengthSymbols
-    @eval @variables $bondLength
-    push!(localModeCoordinates, eval(bondLength))
+    push!(localModeCoordinates, bondLength)
 end
 for bondAngle in bondAnglesSymbols
-    @eval @variables $bondAngle
-    push!(localModeCoordinates, eval(bondAngle))
+    push!(localModeCoordinates, bondAngle)
 end
 for dihedral in dihedralAnglesSymbols
-    @eval @variables $dihedral
-    push!(localModeCoordinates, eval(dihedral))
+    push!(localModeCoordinates, dihedral)
 end
+println(localModeCoordinates)
 println("Done!")
 println("")
 
@@ -62,7 +79,7 @@ println("Done!")
 println("")
 
 println("Generating xi coordinates...")
-xi::Vector{Symbolics.Num} = generateXiCoordinates(localModeCoordinates)
+xi::Vector{SymPy.Sym} = generateXiCoordinates(localModeCoordinates)
 println(xi)
 println("Done!")
 println("")
@@ -73,21 +90,36 @@ println(potentialParameters)
 println("Done!")
 println("")
 
-println("Symmetrerise potential...")
+println("Obtain all xi power terms...")
 @time potentialTerms::DataFrame = obtainTransformedPotentialTermsLocalMode(potentialParameters, localModeCoordinates, symmetryOperations)
 println(potentialTerms)
+println("Done!")
+println("")
+println("Computing potentials...")
 numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
-potentials::Vector{Symbolics.Num} = zeros(numberOfSymmetryOperations + 1)
+potentials::Vector{SymPy.Sym} = zeros(numberOfSymmetryOperations + 1)
 for i in 1:size(potentialTerms)[1]
     for j in 1:size(potentials)[1]
         potentials[j] = potentials[j] + potentialTerms[i, names(potentialTerms)[1]]*potentialTerms[i, names(potentialTerms)[j + numberOfVibrationalModes + 2]]
     end
 end
-equations::Vector{Equation} = Vector{Equation}()
+println("Done!")
+println("")
+
+println("Taking difference between transformed potentials...")
+equations::Vector{SymPy.Sym} = Vector{SymPy.Sym}()
 for i in 2:size(potentials)[1]
-    push!(equations, potentials[i] - potentials[1] ~ 0)
+    push!(equations, potentials[i] - potentials[1])
 end
-@time solutions = Symbolics.solve_for(equations, potentialTerms[:, :Labels])
+println("Done!")
+println("")
+
+println("Solving for coefficients...")
+@everywhere function solveEquation(equation::SymPy.Sym, variables::Vector{SymPy.Sym})
+    return solve(equation, variables)
+end
+@time solutions = pmap(equation -> solveEquation(equation, potentialTerms[:, :Labels]), equations)
 println(solutions)
+rmprocs(workers())
 println("Done!")
 println("")
