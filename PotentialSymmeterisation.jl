@@ -2,19 +2,22 @@ using DataFrames
 using LinearAlgebra
 using SymPy
 using Distributed
-using TensorOperations
 
 # Access the dynamically created symbols
 x = SymPy.Sym("r_1")
+y = SymPy.Sym("r_2")
 println(typeof(x))
 println(SymPy.Sym("0") + SymPy.Sym("1"))
 
 # Create and manipulate expressions using the dynamic symbols
-expr = x^2  - 1 
-# println(typeof(Eq(expr)))
-println("Expression: ", expr)
-println(diff(expr, x))
-println(solve(expr, x))
+expr1 = x^2  - 1 - y^2
+expr2 = y + 1 - x
+# println(typeof(expr1))
+println(Eq(x^2, 1))
+println("Expression: ", expr1)
+println("Expression: ", expr2)
+println(diff(expr1, x))
+println(solve([expr1, expr2], x))
 
 molecule::String = "CH3OH"
 include("$(molecule).jl")

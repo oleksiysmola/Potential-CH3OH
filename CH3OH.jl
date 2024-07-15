@@ -357,7 +357,10 @@ function solveForSymmetricCoefficients(expansionCoefficientsTensorForm::Dict{Int
     println(symmetryOperations[2, :, :])
     println(symmetryOperations[2])
     println("Der fugl ist sehr klug")
-    println(firstOrderEquations[:, 21, :])
+    for equation in firstOrderEquations
+        println(typeof(equation))
+        println(equation)
+    end
     firstOrderSolutions = solve(firstOrderEquations, SymPy.Sym.(expansionCoefficients[1]))
     print("Die katze ist sehr gutt")
     println(firstOrderSolutions)
