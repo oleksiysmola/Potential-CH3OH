@@ -1,90 +1,79 @@
-function computeCartesianCoordinates(localModeCoordinates::Vector{SymPy.Sym}, case="bond-fixed-dihedral"::String)
-    cartesianCoordinates = zeros(6, 3)
-    if case == "bond-fixed-dihedral"
-        # O
-        cartesianCoordinates[2, 3] = localModeCoordinates[1]
-        # H
-        cartesianCoordinates[3, 1] = sin(localModeCoordinates[6])*localModeCoordinates[2]
-        cartesianCoordinates[3, 3] = cartesianCoordinates[2, 3] - cos(localModeCoordinates[6])*localModeCoordinates[2]
-        # H1
-        cartesianCoordinates[4, 1] = sin(localModeCoordinates[7])*cos(localModeCoordinates[10])*localModeCoordinates[3]
-        cartesianCoordinates[4, 2] = sin(localModeCoordinates[7])*sin(localModeCoordinates[10])*localModeCoordinates[3]
-        cartesianCoordinates[4, 3] = cos(localModeCoordinates[7])*localModeCoordinates[3]
-        # H2
-        cartesianCoordinates[5, 1] = sin(localModeCoordinates[8])*cos(localModeCoordinates[11])*localModeCoordinates[4]
-        cartesianCoordinates[5, 2] = sin(localModeCoordinates[8])*sin(localModeCoordinates[11])*localModeCoordinates[4]
-        cartesianCoordinates[5, 3] = cos(localModeCoordinates[8])*localModeCoordinates[4]
-        # H3
-        cartesianCoordinates[6, 1] = sin(localModeCoordinates[9])*cos(localModeCoordinates[12])*localModeCoordinates[5]
-        cartesianCoordinates[6, 2] = sin(localModeCoordinates[9])*sin(localModeCoordinates[12])*localModeCoordinates[5]
-        cartesianCoordinates[6, 3] = cos(localModeCoordinates[9])*localModeCoordinates[5]
-    end
-    return cartesianCoordinates
-end
-
-function generateSymmetryOperationsLocalModeRepresentation(case="C3v(M)"::String)::Array{Int64}
-    permuation123::Matrix{Int64} = Int64[0 1 0; 0 0 1; 1 0 0]
-    permuation132::Matrix{Int64} = Int64[0 0 1; 1 0 0; 0 1 0]
-    permutationInversion12::Matrix{Int64} = Int64[0 1; 1 0]
-    permutationInversion23::Matrix{Int64} = Int64[0 1; 1 0]
-    permutationInversion13::Matrix{Int64} = Int64[0 0 1; 0 1 0; 1 0 0]
+function generateSymmetryOperations(case="C3v(M)"::String)::Array{Float64}
     if case == "C3v(M)"
-        localModeSymmetryOperations::Array{Int64} = zeros(Int64, 6, 12, 12)
-        for i in 1:6
-            localModeSymmetryOperations[i, :, :] = Matrix(1I, 12, 12)
-        end
-        localModeSymmetryOperations[2, 3:5, 3:5] = permuation123
-        localModeSymmetryOperations[2, 7:9, 7:9] = permuation123
-        localModeSymmetryOperations[2, 10:12, 10:12] = permuation123
-        localModeSymmetryOperations[3, 3:5, 3:5] = permuation132
-        localModeSymmetryOperations[3, 7:9, 7:9] = permuation132
-        localModeSymmetryOperations[3, 10:12, 10:12] = permuation132
-        localModeSymmetryOperations[4, 3:4, 3:4] = permutationInversion12
-        localModeSymmetryOperations[4, 7:8, 7:8] = permutationInversion12
-        localModeSymmetryOperations[4, 10:11, 10:11] = permutationInversion12
-        localModeSymmetryOperations[5, 4:5, 4:5] = permutationInversion23
-        localModeSymmetryOperations[5, 8:9, 8:9] = permutationInversion23
-        localModeSymmetryOperations[5, 11:12, 11:12] = permutationInversion23
-        localModeSymmetryOperations[6, 3:5, 3:5] = permutationInversion13
-        localModeSymmetryOperations[6, 7:9, 7:9] = permutationInversion13
-        localModeSymmetryOperations[6, 10:12, 10:12] = permutationInversion13
+        symmetryOperations::Array{Float64} = zeros(Int64, 6, 11, 11)
+        symmetryOperations[1, :, :] = Matrix(1I, 11, 11)
+        # (123)
+        symmetryOperations[2, :, :] = [
+            1 0 0 0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0 0 0 0;
+            0 0 0 1 0 0 0 0 0 0 0; 
+            0 0 0 0 1 0 0 0 0 0 0; 
+            0 0 1 0 0 0 0 0 0 0 0;
+            0 0 0 0 0 1 0 0 0 0 0;
+            0 0 0 0 0 0 0 1 0 0 0;
+            0 0 0 0 0 0 0 0 1 0 0;
+            0 0 0 0 0 0 1 0 0 0 0;
+            0 0 0 0 0 0 0 0 0 -1/2 sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 -sqrt(3)/2 -1/2;            
+            ]
+        # (132)
+        symmetryOperations[3, :, :] = [
+            1 0 0 0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0 0 0 0;
+            0 0 0 0 1 0 0 0 0 0 0;
+            0 0 1 0 0 0 0 0 0 0 0;
+            0 0 0 1 0 0 0 0 0 0 0;
+            0 0 0 0 0 1 0 0 0 0 0;
+            0 0 0 0 0 0 0 0 1 0 0;
+            0 0 0 0 0 0 1 0 0 0 0;
+            0 0 0 0 0 0 0 1 0 0 0;
+            0 0 0 0 0 0 0 0 0 -1/2, -sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 sqrt(3)/2, -1/2;
+        ]
+        # (12)*
+        symmetryOperations[4, :, :] = [
+            1 0 0 0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0 0 0 0;
+            0 0 0 1 0 0 0 0 0 0 0;
+            0 0 1 0 0 0 0 0 0 0 0;
+            0 0 0 0 1 0 0 0 0 0 0;
+            0 0 0 0 0 1 0 0 0 0 0;
+            0 0 0 0 0 0 0 1 0 0 0;
+            0 0 0 0 0 0 1 0 0 0 0;
+            0 0 0 0 0 0 0 0 1 0 0;
+            0 0 0 0 0 0 0 0 0 -1/2, sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 sqrt(3)/2, 1/2;
+        ]
+        # (23)*
+        symmetryOperations[5, :, :] = [
+            1 0 0 0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0 0 0 0;    
+            0 0 1 0 0 0 0 0 0 0 0;
+            0 0 0 0 1 0 0 0 0 0 0;
+            0 0 0 1 0 0 0 0 0 0 0;
+            0 0 0 0 0 1 0 0 0 0 0;
+            0 0 0 0 0 0 1 0 0 0 0;
+            0 0 0 0 0 0 0 0 1 0 0;
+            0 0 0 0 0 0 0 1 0 0 0;
+            0 0 0 0 0 0 0 0 0 1 0;
+            0 0 0 0 0 0 0 0 0 0 -1;
+        ]
+        # (13)*
+        symmetryOperations[6, :, :] = [
+            1 0 0 0 0 0 0 0 0 0 0;
+            0 1 0 0 0 0 0 0 0 0 0;    
+            0 0 0 0 1 0 0 0 0 0 0;
+            0 0 0 1 0 0 0 0 0 0 0;
+            0 0 1 0 0 0 0 0 0 0 0;
+            0 0 0 0 0 1 0 0 0 0 0;
+            0 0 0 0 0 0 0 0 1 0 0;
+            0 0 0 0 0 0 0 1 0 0 0;
+            0 0 0 0 0 0 1 0 0 0 0;
+            0 0 0 0 0 0 0 0 0 -1/2, -sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 -sqrt(3)/2, 1/2;
+        ]
     end
-    return localModeSymmetryOperations
-end
-
-function generateSymmetryOperationsXi(case="C3v(M)"::String)::Array{SymPy.Sym}
-    permuation123::Matrix{SymPy.Sym} = SymPy.Sym[0 1 0; 0 0 1; 1 0 0]
-    permuation123Dihedrals::Matrix{SymPy.Sym} = SymPy.Sym[-1/2 sqrt(3)/2; -sqrt(3)/2 -1/2]
-    permuation132::Matrix{SymPy.Sym} = SymPy.Sym[0 0 1; 1 0 0; 0 1 0]
-    permuation132Dihedrals::Matrix{SymPy.Sym} = SymPy.Sym[-1/2 -sqrt(3)/2; sqrt(3)/2 -1/2]
-    permutationInversion12::Matrix{SymPy.Sym} = SymPy.Sym[0 1; 1 0]
-    permutationInversion12Dihedrals::Matrix{SymPy.Sym} = SymPy.Sym[-1/2 sqrt(3)/2; sqrt(3)/2 1/2]
-    permutationInversion23::Matrix{SymPy.Sym} = SymPy.Sym[0 1; 1 0]
-    permutationInversion23Dihedrals::Matrix{SymPy.Sym} = SymPy.Sym[1 0; 0 -1]
-    permutationInversion13::Matrix{SymPy.Sym} = SymPy.Sym[0 0 1; 0 1 0; 1 0 0]
-    permutationInversion13Dihedrals::Matrix{SymPy.Sym} = SymPy.Sym[-1/2 -sqrt(3)/2; -sqrt(3)/2 1/2]
-    if case == "C3v(M)"
-        xiSymmetryOperations::Array{SymPy.Sym} = zeros(Int64, 6, 11, 11)
-        for i in 1:6
-            xiSymmetryOperations[i, :, :] = Matrix(1I, 11, 11)
-        end
-        xiSymmetryOperations[2, 3:5, 3:5] = permuation123
-        xiSymmetryOperations[2, 7:9, 7:9] = permuation123
-        xiSymmetryOperations[2, 10:11, 10:11] = permuation123Dihedrals
-        xiSymmetryOperations[3, 3:5, 3:5] = permuation132
-        xiSymmetryOperations[3, 7:9, 7:9] = permuation132
-        xiSymmetryOperations[3, 10:11, 10:11] = permuation132Dihedrals
-        xiSymmetryOperations[4, 3:4, 3:4] = permutationInversion12
-        xiSymmetryOperations[4, 7:8, 7:8] = permutationInversion12
-        xiSymmetryOperations[4, 10:11, 10:11] = permutationInversion12Dihedrals
-        xiSymmetryOperations[5, 4:5, 4:5] = permutationInversion23
-        xiSymmetryOperations[5, 8:9, 8:9] = permutationInversion23
-        xiSymmetryOperations[5, 10:11, 10:11] = permutationInversion23Dihedrals
-        xiSymmetryOperations[6, 3:5, 3:5] = permutationInversion13
-        xiSymmetryOperations[6, 7:9, 7:9] = permutationInversion13
-        xiSymmetryOperations[6, 10:11, 10:11] = permutationInversion13Dihedrals
-    end
-    return xiSymmetryOperations
+    return symmetryOperations
 end
 
 function generateSymmetryOperationsCartesianRepresentation(zMatrix::DataFrame, case="C3v(M)"::String)
@@ -292,76 +281,26 @@ function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame
     return potentialTerms
 end
 
-function setupTensorFormPotential(numberOfModes=12::Int64, maxMultiMode=2::Int64, maxFourierOrder=20::Int64)::Tuple{Dict{Int64, Array{SymPy.Sym}}, Dict{Int, Vector{String}}}
-    coefficients::Dict{Int64, Array{SymPy.Sym}} = Dict{Int64, Array{SymPy.Sym}}()
-    firstOrderCoefficients::Array{SymPy.Sym} = zeros(2*maxFourierOrder + 1, numberOfModes-1)
-    powers::Vector{Int64} = zeros(numberOfModes-1)
-    label::String = "f_"
-    labels::Vector{String} = Vector{String}()
-    coefficientLabels::Dict{Int64, Vector{String}} = Dict{Int64, Vector{String}}() 
-    for i in 1:numberOfModes-1
-        powers[i] = powers[i] + 1
-        for n in -maxFourierOrder:maxFourierOrder
-            label = "f_"
-            for j in 1:numberOfModes-1
-                label = label*"$(powers[j])"
-            end
-            label = label*"t$(n)"
-            push!(labels, label)
-            firstOrderCoefficients[n+maxFourierOrder+1, i] = SymPy.Sym(label)
-        end
-        powers = zeros(numberOfModes)
+function computeCartesianCoordinates(localModeCoordinates::Vector{Float64}, case="bond-fixed-dihedral"::String)::Matrix{Float64}
+    cartesianCoordinates::Matrix{Float64} = zeros(6, 3)
+    if case == "bond-fixed-dihedral"
+        # O
+        cartesianCoordinates[2, 3] = localModeCoordinates[1]
+        # H
+        cartesianCoordinates[3, 1] = sin(localModeCoordinates[6])*localModeCoordinates[2]
+        cartesianCoordinates[3, 3] = cartesianCoordinates[2, 3] - cos(localModeCoordinates[6])*localModeCoordinates[2]
+        # H1
+        cartesianCoordinates[4, 1] = sin(localModeCoordinates[7])*cos(localModeCoordinates[10])*localModeCoordinates[3]
+        cartesianCoordinates[4, 2] = sin(localModeCoordinates[7])*sin(localModeCoordinates[10])*localModeCoordinates[3]
+        cartesianCoordinates[4, 3] = cos(localModeCoordinates[7])*localModeCoordinates[3]
+        # H2
+        cartesianCoordinates[5, 1] = sin(localModeCoordinates[8])*cos(localModeCoordinates[11])*localModeCoordinates[4]
+        cartesianCoordinates[5, 2] = sin(localModeCoordinates[8])*sin(localModeCoordinates[11])*localModeCoordinates[4]
+        cartesianCoordinates[5, 3] = cos(localModeCoordinates[8])*localModeCoordinates[4]
+        # H3
+        cartesianCoordinates[6, 1] = sin(localModeCoordinates[9])*cos(localModeCoordinates[12])*localModeCoordinates[5]
+        cartesianCoordinates[6, 2] = sin(localModeCoordinates[9])*sin(localModeCoordinates[12])*localModeCoordinates[5]
+        cartesianCoordinates[6, 3] = cos(localModeCoordinates[9])*localModeCoordinates[5]
     end
-    coefficientLabels[1] = unique(labels)
-    coefficients[1] = firstOrderCoefficients
-
-    labels = Vector{String}()
-    # secondOrderCoefficients::Array{SymPy.Sym} = zeros(numberOfModes, numberOfModes)
-    # for i in 1:numberOfModes
-    #     for j in 1:numberOfModes
-    #         label = fourierType
-    #         powers[i] = powers[i] + 1
-    #         powers[j] = powers[j] + 1
-    #         for k in 1:numberOfModes
-    #             label = label*"$(powers[k])"
-    #             push!(labels, label)
-    #         end
-    #         secondOrderCoefficients[i, j] = SymPy.Sym(label)
-    #         powers = zeros(numberOfModes)
-    #     end
-    # end
-    # coefficients[2] = secondOrderCoefficient
-
-    return coefficients, coefficientLabels
-end
-
-function defineTorsionSymmetryOperations(torsionPower::Int64, symmetryOperations::Array{SymPy.Sym})::Array{SymPy.Sym}
-    fullSymmetryOperations::Array{SymPy.Sym} = symmetryOperations
-    fullSymmetryOperations[2, :, :] = fullSymmetryOperations[2, :, :]*exp(2*pi*torsionPower*1im/3)
-    fullSymmetryOperations[3, :, :] = fullSymmetryOperations[3, :, :]*exp(-2*pi*torsionPower*1im/3)
-    return fullSymmetryOperations
-end
-
-function solveForSymmetricCoefficients(expansionCoefficientsTensorForm::Dict{Int64, Array{SymPy.Sym}}, expansionCoefficients::Dict{Int64, Vector{String}}, symmetryOperations::Array{SymPy.Sym}, numberOfModes=12::Int64)
-    maxFourierOrder::Int64 = (size(expansionCoefficientsTensorForm[1])[1] - 1) / 2
-    numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
-    equationsToSolve::Dict{Int64, Array{SymPy.Sym}} = Dict{Int64, Array{SymPy.Sym}}()
-    firstOrderEquations::Array{SymPy.Sym} = zeros(numberOfSymmetryOperations, 2*maxFourierOrder + 1, numberOfModes-1)
-    for n in -maxFourierOrder:maxFourierOrder
-        # fullSymmetryOperations::Array{SymPy.Sym} = defineTorsionSymmetryOperations(n, symmetryOperations)
-        for operationNumber in 1:numberOfSymmetryOperations
-            firstOrderEquations[operationNumber, n+maxFourierOrder+1, :] = reshape(expansionCoefficientsTensorForm[1][n+maxFourierOrder+1, :], 1 ,11) - reshape(expansionCoefficientsTensorForm[1][n+maxFourierOrder+1, :], 1, 11)*symmetryOperations[operationNumber, :, :]
-        end
-    end
-    println(symmetryOperations[1, :, :])
-    println(symmetryOperations[2, :, :])
-    println(symmetryOperations[2])
-    println("Der fugl ist sehr klug")
-    for equation in firstOrderEquations
-        println(typeof(equation))
-        println(equation)
-    end
-    firstOrderSolutions = solve(firstOrderEquations, SymPy.Sym.(expansionCoefficients[1]))
-    print("Die katze ist sehr gutt")
-    println(firstOrderSolutions)
+    return cartesianCoordinates
 end
