@@ -27,8 +27,8 @@ function defineSymmetryOperations(case="C3v(M)"::String)::Array{Float64}
             0 0 0 0 0 0 0 0 1 0 0;
             0 0 0 0 0 0 1 0 0 0 0;
             0 0 0 0 0 0 0 1 0 0 0;
-            0 0 0 0 0 0 0 0 0 -1/2, -sqrt(3)/2;
-            0 0 0 0 0 0 0 0 0 sqrt(3)/2, -1/2;
+            0 0 0 0 0 0 0 0 0 -1/2 -sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 sqrt(3)/2 -1/2;
         ]
         # (12)*
         symmetryOperations[4, :, :] = [
@@ -41,8 +41,8 @@ function defineSymmetryOperations(case="C3v(M)"::String)::Array{Float64}
             0 0 0 0 0 0 0 1 0 0 0;
             0 0 0 0 0 0 1 0 0 0 0;
             0 0 0 0 0 0 0 0 1 0 0;
-            0 0 0 0 0 0 0 0 0 -1/2, sqrt(3)/2;
-            0 0 0 0 0 0 0 0 0 sqrt(3)/2, 1/2;
+            0 0 0 0 0 0 0 0 0 -1/2 sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 sqrt(3)/2 1/2;
         ]
         # (23)*
         symmetryOperations[5, :, :] = [
@@ -69,8 +69,8 @@ function defineSymmetryOperations(case="C3v(M)"::String)::Array{Float64}
             0 0 0 0 0 0 0 0 1 0 0;
             0 0 0 0 0 0 0 1 0 0 0;
             0 0 0 0 0 0 1 0 0 0 0;
-            0 0 0 0 0 0 0 0 0 -1/2, -sqrt(3)/2;
-            0 0 0 0 0 0 0 0 0 -sqrt(3)/2, 1/2;
+            0 0 0 0 0 0 0 0 0 -1/2 -sqrt(3)/2;
+            0 0 0 0 0 0 0 0 0 -sqrt(3)/2 1/2;
         ]
     end
     return symmetryOperations
@@ -137,173 +137,33 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     xi[9] = cos(localModeCoordinates[9]) - cos(alphaOCHeq)
 
     # Define symmeterised dihedrals
-    d12::Float64 = localModeCoordinates[11] - localModeCoordinates[10]
-    d23::Float64 = localModeCoordinates[12] - localModeCoordinates[11]
-    d13::Float64 = localModeCoordinates[10] - localModeCoordinates[12]
-    push!(xi, (2*d23 - d13 - d12)/sqrt(6))
-    push!(xi, (d13 - d12)/sqrt(2))
+    d32::Float64 = localModeCoordinates[11] - localModeCoordinates[12]
+    d21::Float64 = localModeCoordinates[10] - localModeCoordinates[11]
+    d13::Float64 = localModeCoordinates[12] - localModeCoordinates[10]
+    xi[10] = (2*d32 - d21 - d13)/sqrt(6)
+    xi[11] = (d21 - d13)/sqrt(2)
     
     # Torsion angle
-    tau::SymPy.Sym = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
-    push!(xi, tau)
+    tau::Float64 = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
+    xi[12] = tau
 
     return xi
 end
 
-function generateInitialPotentialParameters(maxOrder=6::Int64, maxMultiMode=2::Int64)::DataFrame
-    label::Vector{SymPy.Sym} = Vector{SymPy.Sym}()
-    iPower::Vector{Int64} = Vector{Int64}()
-    jPower::Vector{Int64} = Vector{Int64}()
-    kPower::Vector{Int64} = Vector{Int64}()
-    lPower::Vector{Int64} = Vector{Int64}()
-    mPower::Vector{Int64} = Vector{Int64}()
-    nPower::Vector{Int64} = Vector{Int64}()
-    oPower::Vector{Int64} = Vector{Int64}()
-    pPower::Vector{Int64} = Vector{Int64}()
-    qPower::Vector{Int64} = Vector{Int64}()
-    rPower::Vector{Int64} = Vector{Int64}()
-    sPower::Vector{Int64} = Vector{Int64}()
-    tPower::Vector{Int64} = Vector{Int64}()
-    parameters::Vector{Float64} = Vector{Float64}()
-    for i in 0:maxOrder
-        for j in 0:maxOrder-i
-            for k in 0:maxOrder-(i+j)
-                for l in 0:maxOrder-(i+j+k)
-                    for m in 0:maxOrder-(i+j+k+l)
-                        for n in 0:maxOrder-(i+j+k+l+m)
-                            for o in 0:maxOrder-(i+j+k+l+m+n)
-                                for p in 0:maxOrder-(i+j+k+l+m+n+o)
-                                    for q in 0:maxOrder-(i+j+k+l+m+n+o+p)
-                                        for r in 0:maxOrder-(i+j+k+l+m+n+o+p+q)
-                                            for s in 0:maxOrder-(i+j+k+l+m+n+o+p+q+r)
-                                                for t in 0:maxOrder-(i+j+k+l+m+n+o+p+q+r+s)
-                                                    multiMode = 0
-                                                    if i >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if j >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if k >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if l >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if m >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if n >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if o >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if p >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if q >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if r >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if s >= 1
-                                                        multiMode = multiMode + 1
-                                                    end
-                                                    if multiMode <= maxMultiMode
-                                                        push!(label, SymPy.Sym("f$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)"))
-                                                        push!(iPower, i)
-                                                        push!(jPower, j)
-                                                        push!(kPower, k)
-                                                        push!(lPower, l)
-                                                        push!(mPower, m)
-                                                        push!(nPower, n)
-                                                        push!(oPower, o)
-                                                        push!(pPower, p)
-                                                        push!(qPower, q)
-                                                        push!(rPower, r)
-                                                        push!(sPower, s)
-                                                        push!(tPower, t)
-                                                        push!(parameters, 0.0000)
-                                                        push!(label, SymPy.Sym("h$(i)$(j)$(k)$(l)$(m)$(n)$(o)$(p)$(q)$(r)$(s)$(t)"))
-                                                        push!(iPower, i)
-                                                        push!(jPower, j)
-                                                        push!(kPower, k)
-                                                        push!(lPower, l)
-                                                        push!(mPower, m)
-                                                        push!(nPower, n)
-                                                        push!(oPower, o)
-                                                        push!(pPower, p)
-                                                        push!(qPower, q)
-                                                        push!(rPower, r)
-                                                        push!(sPower, s)
-                                                        push!(tPower, t)
-                                                        push!(parameters, 0.0000)
-                                                    end
-                                                end
-                                            end
-                                        end
-                                    end
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
-    potentialParameters::DataFrame = DataFrame(Labels=label, iIndex=iPower, jIndex=jPower, kIndex=kPower, lIndex=lPower, mIndex=mPower,
-                        nIndex=nPower, oIndex=oPower, pIndex=pPower, qIndex=qPower, rIndex=rPower, sIndex=sPower, tIndex=tPower, Parameters=parameters
-    )
-    return potentialParameters
+function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, expansionCoefficients::DataFrame)::DataFrame
+    numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
+    numberOfPoints::Int64 = size(grid)[1]
+    # grid[:, :Xi] .= grid[:, :xi]
+    # for i in 2:numberOfSymmetryOperations
+    #     grid[:, :Xi] .= grid[:, :Xi] + symmetryOperations[i].*grid[:, :xi]
+    # end
+    # grid[:, :Xi] .= grid[:, :Xi]./6
+    return grid
 end
 
-function obtainTransformedPotentialTermsLocalMode(potentialParameters::DataFrame, localModeCoordinates::Vector{SymPy.Sym}, symmetryOperations::Array{Int64})::DataFrame
-    totalNumberOfParameters::Int64 = size(potentialParameters)[1]
-    numberOfModes::Int64 = size(localModeCoordinates)[1]
-    numberOfTransformations::Int64 = size(symmetryOperations)[1] + 1 # Also counts untransformed coordinates
-
-    # Defining xi before and after each of the symmetry operations is applied to it
-    xiMatrix::Matrix{SymPy.Sym} = Matrix{SymPy.Sym}(zeros(numberOfTransformations, numberOfModes))
-    xiMatrix[1, :] = generateXiCoordinates(localModeCoordinates)
-    xiMatrix[2, :] = generateXiCoordinates(symmetryOperations[1, :, :]*localModeCoordinates)
-    xiMatrix[3, :] = generateXiCoordinates(symmetryOperations[2, :, :]*localModeCoordinates)
-    xiMatrix[4, :] = generateXiCoordinates(symmetryOperations[3, :, :]*localModeCoordinates)
-    xiMatrix[5, :] = generateXiCoordinates(symmetryOperations[4, :, :]*localModeCoordinates)
-    xiMatrix[6, :] = generateXiCoordinates(symmetryOperations[5, :, :]*localModeCoordinates)
-    xiMatrix[7, :] = generateXiCoordinates(symmetryOperations[6, :, :]*localModeCoordinates)
-    xiPowers::Matrix{SymPy.Sym} = Matrix{SymPy.Sym}(ones(totalNumberOfParameters, numberOfTransformations))
-    for row in 1:totalNumberOfParameters
-        if "$(string(potentialParameters[row, :Labels][1])[1])" == "f"
-            for transformation in 1:numberOfTransformations
-                xiPower::SymPy.Sym = 1.0
-                for mode in 1:numberOfModes-1
-                    xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
-                end
-                xiPower = xiPower*cos(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
-                xiPowers[row, transformation] = xiPower
-            end
-        else
-            for transformation in 1:numberOfTransformations
-                xiPower::SymPy.Sym = 1.0
-                for mode in 1:numberOfModes-1
-                    xiPower = xiPower*xiMatrix[transformation, mode]^potentialParameters[row, names(potentialParameters)[1 + mode]]
-                end
-                xiPower = xiPower*sin(xiMatrix[transformation, 12]*potentialParameters[row, :tIndex])
-                xiPowers[row, transformation] = xiPower            
-            end
-        end
-    end
-    potentialTerms::DataFrame = potentialParameters
-    insertcols!(potentialTerms, 15, :xi => xiPowers[:, 1])
-    insertcols!(potentialTerms, 16, :xi1 => xiPowers[:, 2])
-    insertcols!(potentialTerms, 17, :xi2 => xiPowers[:, 3])
-    insertcols!(potentialTerms, 18, :xi3 => xiPowers[:, 4])
-    insertcols!(potentialTerms, 19, :xi4 => xiPowers[:, 5])
-    insertcols!(potentialTerms, 20, :xi5 => xiPowers[:, 6])
-    insertcols!(potentialTerms, 21, :xi6 => xiPowers[:, 7])
-    return potentialTerms
+function computePotentialEnergy(xiCoordinates::Vector{Float64}, symmetryOperations::Array{Float64})::Float64
+    potential = 0
+    return potential
 end
 
 function computeCartesianCoordinates(localModeCoordinates::Vector{Float64}, case="bond-fixed-dihedral"::String)::Matrix{Float64}
