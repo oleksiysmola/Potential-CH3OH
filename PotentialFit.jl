@@ -1,5 +1,6 @@
 using DataFrames
 using Statistics
+using LsqFit
 using LinearAlgebra
 
 molecule::String = "CH3OH"
@@ -81,8 +82,64 @@ end
 grid[:, :weight] .= computeWeightOfPoint.(grid[:, :E])
 grid[:, :xi] .= generateXiCoordinates.(grid[:, :localModes])
 
-expansionCoefficients = expansionCoefficients[expansionCoefficients.expansionOrder .< 3, :]
-println(size(expansionCoefficients))
+
+expansionCoefficients = expansionCoefficients[expansionCoefficients.expansionOrder .< 2, :]
 symmetryOperations::Array{Float64} = defineSymmetryOperations()
-grid = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
-println(grid)
+@time xiPowers::Matrix{Float64} = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
+
+function potentialEnergyModel(xiPowers::Matrix{Float64}, expansionParameters::Vector{Float64})::Vector{Float64}
+    numberOfPoints::Int64 = size(xiPowers)[1]
+    potential::Vector{Float64} = zeros(numberOfPoints)
+    for i in 1:numberOfPoints
+        potential[i] = dot(xiPowers[i, :], expansionParameters)
+    end
+    return potential
+end
+
+function derivatives(xiPowers::Matrix{Float64}, expansionParameters::Vector{Float64})::Matrix{Float64}
+    return xiPowers
+end
+
+energies::Vector{Float64} = convert(Vector, grid[:, :E])
+expansionParameters::Vector{Float64} = convert(Vector, expansionCoefficients[:, :coefficientValue])
+weights::Vector{Float64} = convert(Vector, grid[:, :weight])
+@time potentialFit = curve_fit((xiPowers, expansionParameters) -> potentialEnergyModel(xiPowers, expansionParameters),
+    (xiPowers, expansionParameters) -> derivatives(xiPowers, expansionParameters),
+    xiPowers, energies, weights, expansionParameters)
+
+fittedParameters::Vector{Float64} = potentialFit.param
+fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers, fittedParameters)
+grid[:, :fittedEnergies] .= fittedPotential
+grid[:, :obsMinusCalc] .= grid[:, :E] .- grid[:, :fittedEnergies]
+println("Parameters of fit:")
+displayResult::String = ""
+for i in 1:size(fittedParameters)[1]
+    global displayResult = ""
+    displayResult = displayResult*"$(expansionCoefficients[i, 1])"
+    displayResult = displayResult*"  "
+    powers = expansionCoefficients[i, 2]
+    for j in 1:numberOfModes
+        displayResult = displayResult*"$(powers[j])"*" "
+    end
+    displayResult = displayResult*" "
+    displayResult = displayResult*"$(expansionCoefficients[i, 3])"*"  "
+    displayResult = displayResult*"$(fittedParameters[i])"
+    println(displayResult)
+end
+println("Displaying energies at grid")
+for i in 1:size(grid)[1]
+    global displayResult = ""
+    gridCoordinates = grid[i, 1]
+    for j in 1:numberOfModes
+        displayResult = displayResult*"$(gridCoordinates[j])"*" "
+    end
+    displayResult = displayResult*" "
+    displayResult = displayResult*"$(grid[i, :E])"
+    displayResult = displayResult*"  "
+    displayResult = displayResult*"$(grid[i, :fittedEnergies])"
+    displayResult = displayResult*"  "
+    displayResult = displayResult*"$(grid[i, :obsMinusCalc])"
+    println(displayResult)
+end
+println("rms:")
+println(sqrt(mean(grid[:, :obsMinusCalc].^2)))

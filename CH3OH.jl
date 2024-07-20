@@ -106,7 +106,7 @@ function defineTorsionSymmetryOperations(fourierOrder::Int64, case="C3v(M)"::Str
             sin(2*pi*fourierOrder/3) -cos(2*pi*fourierOrder/3);           
             ]
     end
-    return symmetryOperations
+    return torsionSymmetryOperations
 end
 
 function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Float64}
@@ -120,8 +120,7 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     a1::Float64 = 1.44
     a2::Float64 = 1.66
     b1::Float64 = 1.55
-    
-    xi::Vector{Float64} = zeros(Float64, 13)
+    xi::Vector{Float64} = zeros(Float64, 12)
     
     # Stretches
     xi[1] = 1.00 - exp(-a1*(localModeCoordinates[1] - rCOeq))
@@ -131,34 +130,52 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     xi[5] = 1.00 - exp(-b1*(localModeCoordinates[5] - rH1eq))
 
     # Angles
-    xi[6] = cos(localModeCoordinates[6]) - cos(alphaCOHeq)
-    xi[7] = cos(localModeCoordinates[7]) - cos(alphaOCHeq)
-    xi[8] = cos(localModeCoordinates[8]) - cos(alphaOCHeq)
-    xi[9] = cos(localModeCoordinates[9]) - cos(alphaOCHeq)
+    xi[6] = cos(localModeCoordinates[6]*convertToRadians) - cos(alphaCOHeq)
+    xi[7] = cos(localModeCoordinates[7]*convertToRadians) - cos(alphaOCHeq)
+    xi[8] = cos(localModeCoordinates[8]*convertToRadians) - cos(alphaOCHeq)
+    xi[9] = cos(localModeCoordinates[9]*convertToRadians) - cos(alphaOCHeq)
 
     # Define symmeterised dihedrals
-    d32::Float64 = localModeCoordinates[11] - localModeCoordinates[12]
-    d21::Float64 = localModeCoordinates[10] - localModeCoordinates[11]
-    d13::Float64 = localModeCoordinates[12] - localModeCoordinates[10]
-    xi[10] = (2*d32 - d21 - d13)/sqrt(6)
-    xi[11] = (d21 - d13)/sqrt(2)
+    d12eq::Float64 = 2.165647870654562
+    d23eq::Float64 = 1.951889565870463
+    d13eq::Float64 = 2.165647870654562
+    d12::Float64 = cos(mod((localModeCoordinates[11] - localModeCoordinates[10])*convertToRadians + 2*pi, 2*pi)) - cos(d12eq)
+    d23::Float64 = cos(mod((localModeCoordinates[12] - localModeCoordinates[11])*convertToRadians + 2*pi, 2*pi)) - cos(d23eq)
+    d13::Float64 = cos(mod((localModeCoordinates[10] - localModeCoordinates[12])*convertToRadians + 2*pi, 2*pi)) - cos(d13eq)
+    xi[10] = (2*d23 - d13 - d12)/sqrt(6)
+    xi[11] = (d13 - d12)/sqrt(2)
     
     # Torsion angle
-    tau::Float64 = (localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])/3
+    tau::Float64 = ((localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])*convertToRadians - 2*pi)/3
     xi[12] = tau
 
     return xi
 end
 
-function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, expansionCoefficients::DataFrame)::DataFrame
+function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, expansionCoefficients::DataFrame)::Matrix{Float64}
     numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
     numberOfPoints::Int64 = size(grid)[1]
-    # grid[:, :Xi] .= grid[:, :xi]
-    # for i in 2:numberOfSymmetryOperations
-    #     grid[:, :Xi] .= grid[:, :Xi] + symmetryOperations[i].*grid[:, :xi]
-    # end
-    # grid[:, :Xi] .= grid[:, :Xi]./6
-    return grid
+    numberOfExpansionCoefficients::Int64 = size(expansionCoefficients)[1]
+    xiPowers::Matrix{Float64} = zeros(Float64, numberOfPoints, numberOfExpansionCoefficients)
+    for i in 1:numberOfPoints
+        xi::Vector{Float64} = grid[i, :xi]
+        for j in 1:numberOfExpansionCoefficients
+            torsionType::String = expansionCoefficients[j, :torsionType]
+            powers::Vector{Int64} = expansionCoefficients[j, :expansionPowers]
+            torsionSymmetryOperations::Array{Float64} = defineTorsionSymmetryOperations(powers[end])
+            torsionMode::Vector{Float64} = [cos(powers[end]*xi[end]), sin(powers[end]*xi[end])]
+            for k in 1:numberOfSymmetryOperations
+                transformedTorsionMode::Vector{Float64} = torsionSymmetryOperations[k, :, :]*torsionMode
+                transformedXi::Vector{Float64} = symmetryOperations[k, :, :]*xi[1:end-1]
+                if torsionType == "f"
+                    xiPowers[i, j] = xiPowers[i, j] + transformedTorsionMode[1]*prod(transformedXi.^powers[1:end-1])
+                else
+                    xiPowers[i, j] = xiPowers[i, j] + transformedTorsionMode[2]*prod(transformedXi.^powers[1:end-1])
+                end
+            end
+        end
+    end
+    return xiPowers
 end
 
 function computePotentialEnergy(xiCoordinates::Vector{Float64}, symmetryOperations::Array{Float64})::Float64
