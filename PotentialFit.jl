@@ -1,11 +1,15 @@
 using DataFrames
 using Statistics
+using StatsBase
 using LsqFit
+using GLM
+using MLJLinearModels
 using LinearAlgebra
 
 molecule::String = "CH3OH"
 
 include("$(molecule).jl")
+include("TikhonovRegularisation.jl")
 
 hartreeToWavenumberConversion::Float64 = 219474.63
 
@@ -65,6 +69,9 @@ end
 
 grid::DataFrame = DataFrame(collectedGrid, [:localModes, :E])
 numberOfModes::Int64 = size(grid[1, :localModes])[1]
+numberOfPoints::Int64 = size(grid)[1]
+println("Minimum in the potential energy:")
+println(minimum(grid[:, :E]))
 grid[:, :E] .= grid[:, :E].*hartreeToWavenumberConversion
 grid[:, :E] .= grid[:, :E].-minimum(grid[:, :E])
 
@@ -83,10 +90,47 @@ grid[:, :weight] .= computeWeightOfPoint.(grid[:, :E])
 grid[:, :xi] .= generateXiCoordinates.(grid[:, :localModes])
 
 
-expansionCoefficients = expansionCoefficients[expansionCoefficients.expansionOrder .< 2, :]
+expansionCoefficients = expansionCoefficients[expansionCoefficients.expansionOrder .< 4, :]
+numberOfParameters::Int64 = size(expansionCoefficients)[1]
 symmetryOperations::Array{Float64} = defineSymmetryOperations()
+println("Invariance of current potential:")
+xiCoordinates = grid[1, 1]
+println(computePotentialEnergy(xiCoordinates, expansionCoefficients ,symmetryOperations))
+xiCoordinates[1:end-1] = symmetryOperations[2, :, :]*xiCoordinates[1:end-1]
+xiCoordinates[end] = xiCoordinates[end] + 2*pi/3
+println(computePotentialEnergy(xiCoordinates, expansionCoefficients ,symmetryOperations))
+xiCoordinates = grid[1, 1]
+xiCoordinates[1:end-1] = symmetryOperations[3, :, :]*xiCoordinates[1:end-1]
+xiCoordinates[end] = xiCoordinates[end] - 2*pi/3
+println(computePotentialEnergy(xiCoordinates, expansionCoefficients ,symmetryOperations))
+println("Initializing fit coordinates...")
 @time xiPowers::Matrix{Float64} = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
+# @time grid::DataFrame = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
+println("Done!")
 
+
+# Ridge Regression 
+# potentialEnergyModel = @formula(E ~ .)
+# reducedGrid::DataFrame = hcat(grid[:, :E], grid[:, 5:end])
+# normalisedGrid::DataFrame
+# for i in 1:numberOfParameters + 1
+#     normalisedGrid[:, i] .= (reducedGrid[:, i] .- mean(reducedGrid[:, i]))./std(reducedGrid[:, i])
+# end 
+# lambda::Float64 = 1.0
+# println("Begin fitting...")
+# @time potentialFit = lm(potentialEnergyModel, reducedGrid, RidgeReg(lambda = lambda))
+# println("Done!")
+
+# fittedParameters::Vector{Float64} = coef(potentialFit)
+# error = coeftable(potentialFit).se
+# fittedPotential::Vector{Float64} = predict(potentialEnergyModel, reducedGrid)
+# grid[:, :fittedEnergies] .= fittedPotential
+# grid[:, :obsMinusCalc] .= grid[:, :E] .- grid[:, :fittedEnergies]
+
+# Least Squares Fit
+energies::Vector{Float64} = convert(Vector, grid[:, :E])
+expansionParameters::Vector{Float64} = convert(Vector, expansionCoefficients[:, :coefficientValue])
+weights::Vector{Float64} = convert(Vector, grid[:, :weight])
 function potentialEnergyModel(xiPowers::Matrix{Float64}, expansionParameters::Vector{Float64})::Vector{Float64}
     numberOfPoints::Int64 = size(xiPowers)[1]
     potential::Vector{Float64} = zeros(numberOfPoints)
@@ -100,15 +144,25 @@ function derivatives(xiPowers::Matrix{Float64}, expansionParameters::Vector{Floa
     return xiPowers
 end
 
-energies::Vector{Float64} = convert(Vector, grid[:, :E])
-expansionParameters::Vector{Float64} = convert(Vector, expansionCoefficients[:, :coefficientValue])
-weights::Vector{Float64} = convert(Vector, grid[:, :weight])
+normalisedEnergies::Vector{Float64} = (energies .- mean(energies))./std(energies)
+normalisedXiPowers::Matrix{Float64} = zeros(numberOfPoints, numberOfParameters)
+for i in 1:numberOfParameters
+    normalisedXiPowers[:, i] = (xiPowers[:, i] .- mean(xiPowers[:, i]))./std(xiPowers[:, i]) 
+end
+println("Begin fitting...")
 @time potentialFit = curve_fit((xiPowers, expansionParameters) -> potentialEnergyModel(xiPowers, expansionParameters),
     (xiPowers, expansionParameters) -> derivatives(xiPowers, expansionParameters),
     xiPowers, energies, weights, expansionParameters)
+# @time fittedParameters::Vector{Float64} = MLJLinearModels.fit(RidgeRegression(), xiPowers[:, 2:end], energies)
+println("Done!")
+
+# println(potentialFit)
+# println(size(expansionParameters))
+# println(size(fittedParameters))
 
 fittedParameters::Vector{Float64} = potentialFit.param
 fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers, fittedParameters)
+# fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers[:, 2:end], fittedParameters[2:end]) .+ fittedParameters[1]
 grid[:, :fittedEnergies] .= fittedPotential
 grid[:, :obsMinusCalc] .= grid[:, :E] .- grid[:, :fittedEnergies]
 println("Parameters of fit:")
@@ -121,9 +175,10 @@ for i in 1:size(fittedParameters)[1]
     for j in 1:numberOfModes
         displayResult = displayResult*"$(powers[j])"*" "
     end
-    displayResult = displayResult*" "
-    displayResult = displayResult*"$(expansionCoefficients[i, 3])"*"  "
+    displayResult = displayResult*"  "
+    # displayResult = displayResult*"$(expansionCoefficients[i, 3])"*"  "
     displayResult = displayResult*"$(fittedParameters[i])"
+    # displayResult = displayResult*"$(sigma[i])"
     println(displayResult)
 end
 println("Displaying energies at grid")
@@ -143,3 +198,5 @@ for i in 1:size(grid)[1]
 end
 println("rms:")
 println(sqrt(mean(grid[:, :obsMinusCalc].^2)))
+println("Error in parameters: ")
+println(error)

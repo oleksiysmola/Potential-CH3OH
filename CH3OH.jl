@@ -130,18 +130,18 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     xi[5] = 1.00 - exp(-b1*(localModeCoordinates[5] - rH1eq))
 
     # Angles
-    xi[6] = cos(localModeCoordinates[6]*convertToRadians) - cos(alphaCOHeq)
-    xi[7] = cos(localModeCoordinates[7]*convertToRadians) - cos(alphaOCHeq)
-    xi[8] = cos(localModeCoordinates[8]*convertToRadians) - cos(alphaOCHeq)
-    xi[9] = cos(localModeCoordinates[9]*convertToRadians) - cos(alphaOCHeq)
+    xi[6] = localModeCoordinates[6]*convertToRadians - alphaCOHeq
+    xi[7] = localModeCoordinates[7]*convertToRadians - alphaOCHeq
+    xi[8] = localModeCoordinates[8]*convertToRadians - alphaOCHeq
+    xi[9] = localModeCoordinates[9]*convertToRadians - alphaOCHeq
 
     # Define symmeterised dihedrals
     d12eq::Float64 = 2.165647870654562
     d23eq::Float64 = 1.951889565870463
     d13eq::Float64 = 2.165647870654562
-    d12::Float64 = cos(mod((localModeCoordinates[11] - localModeCoordinates[10])*convertToRadians + 2*pi, 2*pi)) - cos(d12eq)
-    d23::Float64 = cos(mod((localModeCoordinates[12] - localModeCoordinates[11])*convertToRadians + 2*pi, 2*pi)) - cos(d23eq)
-    d13::Float64 = cos(mod((localModeCoordinates[10] - localModeCoordinates[12])*convertToRadians + 2*pi, 2*pi)) - cos(d13eq)
+    d12::Float64 = mod((localModeCoordinates[11] - localModeCoordinates[10])*convertToRadians + 2*pi, 2*pi)
+    d23::Float64 = mod((localModeCoordinates[12] - localModeCoordinates[11])*convertToRadians + 2*pi, 2*pi)
+    d13::Float64 = mod((localModeCoordinates[10] - localModeCoordinates[12])*convertToRadians + 2*pi, 2*pi)
     xi[10] = (2*d23 - d13 - d12)/sqrt(6)
     xi[11] = (d13 - d12)/sqrt(2)
     
@@ -151,6 +151,33 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
 
     return xi
 end
+
+# function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, expansionCoefficients::DataFrame)::DataFrame
+#     numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
+#     numberOfPoints::Int64 = size(grid)[1]
+#     numberOfExpansionCoefficients::Int64 = size(expansionCoefficients)[1]
+#     xiPowers::Matrix{Float64} = zeros(Float64, numberOfPoints, numberOfExpansionCoefficients)
+#     for i in 1:numberOfPoints
+#         xi::Vector{Float64} = grid[i, :xi]
+#         for j in 1:numberOfExpansionCoefficients
+#             torsionType::String = expansionCoefficients[j, :torsionType]
+#             powers::Vector{Int64} = expansionCoefficients[j, :expansionPowers]
+#             torsionSymmetryOperations::Array{Float64} = defineTorsionSymmetryOperations(powers[end])
+#             torsionMode::Vector{Float64} = [cos(powers[end]*xi[end]), sin(powers[end]*xi[end])]
+#             for k in 1:numberOfSymmetryOperations
+#                 transformedTorsionMode::Vector{Float64} = torsionSymmetryOperations[k, :, :]*torsionMode
+#                 transformedXi::Vector{Float64} = symmetryOperations[k, :, :]*xi[1:end-1]
+#                 if torsionType == "f"
+#                     xiPowers[i, j] = xiPowers[i, j] + transformedTorsionMode[1]*prod(transformedXi.^powers[1:end-1])
+#                 else
+#                     xiPowers[i, j] = xiPowers[i, j] + transformedTorsionMode[2]*prod(transformedXi.^powers[1:end-1])
+#                 end
+#             end
+#         end
+#     end
+#     grid = hcat(grid, DataFrame(xiPowers, :auto))
+#     return grid
+# end
 
 function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, expansionCoefficients::DataFrame)::Matrix{Float64}
     numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
@@ -178,8 +205,27 @@ function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, 
     return xiPowers
 end
 
-function computePotentialEnergy(xiCoordinates::Vector{Float64}, symmetryOperations::Array{Float64})::Float64
-    potential = 0
+function computePotentialEnergy(xiCoordinates::Vector{Float64}, expansionCoefficients::DataFrame, symmetryOperations::Array{Float64})::Float64
+    potential::Float64 = 0.0
+    numberOfParameters::Int64 = size(expansionCoefficients)[1]
+    numberOfSymmetryOperations::Int64 = size(symmetryOperations)[1]
+    xiPowers::Vector{Float64} = zeros(numberOfParameters)
+    for i in 1:numberOfParameters
+        torsionType::String = expansionCoefficients[i, 1]
+        powers::Vector{Int64} = expansionCoefficients[i, 2]
+        torsionSymmetryOperations::Array{Float64} = defineTorsionSymmetryOperations(powers[end])
+        torsionMode::Vector{Float64} = [cos(powers[end]*xiCoordinates[end]), sin(powers[end]*xiCoordinates[end])]
+        for j in 1:numberOfSymmetryOperations
+            transformedTorsionMode::Vector{Float64} = torsionSymmetryOperations[j, :, :]*torsionMode
+            transformedXi::Vector{Float64} = symmetryOperations[j, :, :]*xiCoordinates[1:end-1]
+            if torsionType == "f"
+                xiPowers[i] = xiPowers[i] + transformedTorsionMode[1]*prod(transformedXi.^powers[1:end-1])
+            else
+                xiPowers[i] = xiPowers[i] + transformedTorsionMode[2]*prod(transformedXi.^powers[1:end-1])
+            end
+        end
+    end
+    potential = dot(xiPowers, expansionCoefficients[:, 3])
     return potential
 end
 
