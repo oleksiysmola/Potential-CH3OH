@@ -130,7 +130,7 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     xi[5] = 1.00 - exp(-b1*(localModeCoordinates[5] - rH1eq))
 
     # Angles
-    xi[6] = localModeCoordinates[6]*convertToRadians - alphaCOHeq
+    xi[6] = cos(localModeCoordinates[6]*convertToRadians) - cos(alphaCOHeq)
     xi[7] = localModeCoordinates[7]*convertToRadians - alphaOCHeq
     xi[8] = localModeCoordinates[8]*convertToRadians - alphaOCHeq
     xi[9] = localModeCoordinates[9]*convertToRadians - alphaOCHeq

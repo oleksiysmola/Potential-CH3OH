@@ -1,0 +1,6 @@
+HOC 1D:
+    alpha - alphaeq
+    0.08173167789221267
+    
+    cos(alpha) - cos(alphaeq)
+    0.01802713440251148
