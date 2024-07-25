@@ -229,6 +229,32 @@ function computePotentialEnergy(xiCoordinates::Vector{Float64}, expansionCoeffic
     return potential
 end
 
+function checkPotentialForInvariance(grid::DataFrame, expansionCoefficients::DataFrame, symmetryOperations::Array{Float64})
+    xiCoordinates::Vector{Float64} = copy(grid[1, 1])
+    potentialBeforeTransformation::Float64 = computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations)
+    xiCoordinates[1:end-1] = symmetryOperations[1, :, :]*xiCoordinates[1:end-1]
+    println("Symmetry Operation E: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+    xiCoordinates[1:end-1] = symmetryOperations[2, :, :]*xiCoordinates[1:end-1]
+    xiCoordinates[end] = xiCoordinates[end] + 2*pi/3
+    println("Symmetry Operation (123): ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+    xiCoordinates = copy(grid[1, 1])
+    xiCoordinates[1:end-1] = symmetryOperations[3, :, :]*xiCoordinates[1:end-1]
+    xiCoordinates[end] = xiCoordinates[end] - 2*pi/3
+    println("Symmetry Operation (132): ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+    xiCoordinates = copy(grid[1, 1])
+    xiCoordinates[1:end-1] = symmetryOperations[4, :, :]*xiCoordinates[1:end-1]
+    xiCoordinates[end] = -xiCoordinates[end] - 2*pi/3
+    println("Symmetry Operation (12)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+    xiCoordinates = copy(grid[1, 1])
+    xiCoordinates[1:end-1] = symmetryOperations[5, :, :]*xiCoordinates[1:end-1]
+    xiCoordinates[end] = -xiCoordinates[end]
+    println("Symmetry Operation (23)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+    xiCoordinates = copy(grid[1, 1])
+    xiCoordinates[1:end-1] = symmetryOperations[6, :, :]*xiCoordinates[1:end-1]
+    xiCoordinates[end] = -xiCoordinates[end] + 2*pi/3
+    println("Symmetry Operation (13)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+end
+
 function computeCartesianCoordinates(localModeCoordinates::Vector{Float64}, case="bond-fixed-dihedral"::String)::Matrix{Float64}
     cartesianCoordinates::Matrix{Float64} = zeros(6, 3)
     if case == "bond-fixed-dihedral"

@@ -94,29 +94,7 @@ grid[:, :xi] .= generateXiCoordinates.(grid[:, :localModes])
 numberOfParameters::Int64 = size(expansionCoefficients)[1]
 symmetryOperations::Array{Float64} = defineSymmetryOperations()
 println("Invariance of current potential:")
-xiCoordinates::Vector{Float64} = grid[1, 1]
-potentialBeforeTransformation::Float64 = computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations)
-xiCoordinates[1:end-1] = symmetryOperations[1, :, :]*xiCoordinates[1:end-1]
-println("Symmetry Operation E: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
-xiCoordinates[1:end-1] = symmetryOperations[2, :, :]*xiCoordinates[1:end-1]
-xiCoordinates[end] = xiCoordinates[end] + 2*pi/3
-println("Symmetry Operation (123): ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
-xiCoordinates = grid[1, 1]
-xiCoordinates[1:end-1] = symmetryOperations[3, :, :]*xiCoordinates[1:end-1]
-xiCoordinates[end] = xiCoordinates[end] - 2*pi/3
-println("Symmetry Operation (123): ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
-xiCoordinates = grid[1, 1]
-xiCoordinates[1:end-1] = symmetryOperations[4, :, :]*xiCoordinates[1:end-1]
-xiCoordinates[end] = -xiCoordinates[end] - 2*pi/3
-println("Symmetry Operation (12)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
-xiCoordinates = grid[1, 1]
-xiCoordinates[1:end-1] = symmetryOperations[5, :, :]*xiCoordinates[1:end-1]
-xiCoordinates[end] = -xiCoordinates[end]
-println("Symmetry Operation (23)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
-xiCoordinates = grid[1, 1]
-xiCoordinates[1:end-1] = symmetryOperations[6, :, :]*xiCoordinates[1:end-1]
-xiCoordinates[end] = -xiCoordinates[end] + 2*pi/3
-println("Symmetry Operation (23)*: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
+checkPotentialForInvariance(grid, expansionCoefficients, symmetryOperations)
 println("Initializing fit coordinates...")
 @time xiPowers::Matrix{Float64} = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
 # @time grid::DataFrame = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
