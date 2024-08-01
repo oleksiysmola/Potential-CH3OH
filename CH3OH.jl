@@ -112,14 +112,22 @@ end
 function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Float64}
     convertToRadians::Float64 = 2*pi/360
     # Define equilibrium parameters
-    rCOeq::Float64 = 1.4296
-    rOHeq::Float64 = 0.95887
-    rH1eq::Float64 = 1.092294
-    alphaCOHeq::Float64 = 107.9812*convertToRadians
-    alphaOCHeq::Float64 = 110.6646*convertToRadians
-    a1::Float64 = 1.44
-    a2::Float64 = 1.66
-    b1::Float64 = 1.55
+    # rCOeq::Float64 = 1.4296
+    # rOHeq::Float64 = 0.95887
+    # rH1eq::Float64 = 1.092294
+    # alphaCOHeq::Float64 = 107.9812*convertToRadians
+    # alphaOCHeq::Float64 = 110.6646*convertToRadians
+    # a1::Float64 = 1.44
+    # a2::Float64 = 1.66
+    # b1::Float64 = 1.55
+    rCOeq::Float64 = 1.42214934
+    rOHeq::Float64 = 0.95552007
+    rH1eq::Float64 = 1.09109223
+    alphaCOHeq::Float64 = 108.36849877*convertToRadians
+    alphaOCHeq::Float64 = 112.68916948*convertToRadians
+    a1::Float64 = 1.86914479
+    a2::Float64 = 2.28541638
+    b1::Float64 = 1.90474151
     xi::Vector{Float64} = zeros(Float64, 12)
     
     # Stretches
@@ -232,6 +240,8 @@ end
 function checkPotentialForInvariance(grid::DataFrame, expansionCoefficients::DataFrame, symmetryOperations::Array{Float64})
     xiCoordinates::Vector{Float64} = copy(grid[1, 1])
     potentialBeforeTransformation::Float64 = computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations)
+    println("Potential before transformations:")
+    println(potentialBeforeTransformation)
     xiCoordinates[1:end-1] = symmetryOperations[1, :, :]*xiCoordinates[1:end-1]
     println("Symmetry Operation E: ", computePotentialEnergy(xiCoordinates, expansionCoefficients, symmetryOperations) - potentialBeforeTransformation)
     xiCoordinates[1:end-1] = symmetryOperations[2, :, :]*xiCoordinates[1:end-1]

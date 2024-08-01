@@ -1,6 +1,8 @@
 using DataFrames
 using Statistics
 using StatsBase
+using Random
+using Flux
 using LsqFit
 using GLM
 using MLJLinearModels
@@ -9,7 +11,7 @@ using LinearAlgebra
 molecule::String = "CH3OH"
 
 include("$(molecule).jl")
-include("TikhonovRegularisation.jl")
+include("FittingModels.jl")
 
 hartreeToWavenumberConversion::Float64 = 219474.63
 
@@ -45,7 +47,7 @@ if lowercase(readline()) == "parameters"
                 multiMode = multiMode - sum(multiModeGroupVector) + multiModeOfGroup
             end
         end
-        push!(collectedCoefficients, (String(splitCoefficientInput[1]), powers, parse(Float64, splitCoefficientInput[end]), Int64(sum(powers) - powers[end]), multiMode))
+        push!(collectedCoefficients, (String(splitCoefficientInput[1]), abs.(powers), parse(Float64, splitCoefficientInput[end]), Int64(sum(powers) - powers[end]), multiMode))
     end
 end
 expansionCoefficients::DataFrame = DataFrame(collectedCoefficients, [:torsionType, :expansionPowers, :coefficientValue, :expansionOrder, :multiMode])
@@ -93,7 +95,7 @@ grid[:, :xi] .= generateXiCoordinates.(grid[:, :localModes])
 # expansionCoefficients = expansionCoefficients[expansionCoefficients.expansionOrder .< 4, :]
 numberOfParameters::Int64 = size(expansionCoefficients)[1]
 symmetryOperations::Array{Float64} = defineSymmetryOperations()
-println("Invariance of current potential:")
+println("Invariance of current potential...")
 checkPotentialForInvariance(grid, expansionCoefficients, symmetryOperations)
 println("Initializing fit coordinates...")
 @time xiPowers::Matrix{Float64} = setupFitVariables(grid, symmetryOperations, expansionCoefficients)
@@ -142,17 +144,21 @@ for i in 1:numberOfParameters
     normalisedXiPowers[:, i] = (xiPowers[:, i] .- mean(xiPowers[:, i]))./std(xiPowers[:, i]) 
 end
 println("Begin fitting...")
-@time potentialFit = curve_fit((xiPowers, expansionParameters) -> potentialEnergyModel(xiPowers, expansionParameters),
-    (xiPowers, expansionParameters) -> derivatives(xiPowers, expansionParameters),
-    xiPowers, energies, weights, expansionParameters)
-# @time fittedParameters::Vector{Float64} = MLJLinearModels.fit(RidgeRegression(), xiPowers[:, 2:end], energies)
+
+Random.seed!(123)
+
+# @time potentialFit = curve_fit((xiPowers, expansionParameters) -> potentialEnergyModel(xiPowers, expansionParameters),
+#     (xiPowers, expansionParameters) -> derivatives(xiPowers, expansionParameters),
+#     xiPowers, energies, weights, expansionParameters)
+fittedParameters::Vector{Float64} = LsqCurveFit(potentialEnergyModel, derivatives, xiPowers, expansionParameters, energies, weights)
+# @time fittedParameters::Vector{Float64} = TikhonovRegularisation(xiPowers, expansionParameters, energies)
 println("Done!")
 
 # println(potentialFit)
 # println(size(expansionParameters))
 # println(size(fittedParameters))
 
-fittedParameters::Vector{Float64} = potentialFit.param
+# fittedParameters::Vector{Float64} = potentialFit.param
 fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers, fittedParameters)
 # fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers[:, 2:end], fittedParameters[2:end]) .+ fittedParameters[1]
 grid[:, :fittedEnergies] .= fittedPotential
