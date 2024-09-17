@@ -70,12 +70,13 @@ while readingGrid
 end
 
 grid::DataFrame = DataFrame(collectedGrid, [:localModes, :E])
-numberOfModes::Int64 = size(grid[1, :localModes])[1]
-numberOfPoints::Int64 = size(grid)[1]
 println("Minimum in the potential energy:")
 println(minimum(grid[:, :E]))
 grid[:, :E] .= grid[:, :E].*hartreeToWavenumberConversion
 grid[:, :E] .= grid[:, :E].-minimum(grid[:, :E])
+grid = filter(row -> row.E <= 10000, grid)
+numberOfModes::Int64 = size(grid[1, :localModes])[1]
+numberOfPoints::Int64 = size(grid)[1]
 
 # Weight factor by Partridge and Schwenke
 function computeWeightOfPoint(energy::Float64, energyThreshold=15000.0::Float64)::Float64
@@ -151,6 +152,7 @@ Random.seed!(123)
 #     (xiPowers, expansionParameters) -> derivatives(xiPowers, expansionParameters),
 #     xiPowers, energies, weights, expansionParameters)
 fittedParameters::Vector{Float64} = LsqCurveFit(potentialEnergyModel, derivatives, xiPowers, expansionParameters, energies, weights)
+# fittedParameters::Vector{Float64} = expansionCoefficients[:, 3] 
 # @time fittedParameters::Vector{Float64} = TikhonovRegularisation(xiPowers, expansionParameters, energies)
 println("Done!")
 
@@ -161,7 +163,7 @@ println("Done!")
 # fittedParameters::Vector{Float64} = potentialFit.param
 fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers, fittedParameters)
 # fittedPotential::Vector{Float64} = potentialEnergyModel(xiPowers[:, 2:end], fittedParameters[2:end]) .+ fittedParameters[1]
-grid[:, :fittedEnergies] .= fittedPotential
+grid[:, :fittedEnergies] .= fittedPotential # .- fittedParameters[1]
 grid[:, :obsMinusCalc] .= grid[:, :E] .- grid[:, :fittedEnergies]
 println("Parameters of fit:")
 displayResult::String = ""
@@ -180,21 +182,28 @@ for i in 1:size(fittedParameters)[1]
     println(displayResult)
 end
 println("Displaying energies at grid")
-for i in 1:size(grid)[1]
-    global displayResult = ""
-    gridCoordinates = grid[i, 1]
-    for j in 1:numberOfModes
-        displayResult = displayResult*"$(gridCoordinates[j])"*" "
-    end
-    displayResult = displayResult*" "
-    displayResult = displayResult*"$(grid[i, :E])"
-    displayResult = displayResult*"  "
-    displayResult = displayResult*"$(grid[i, :fittedEnergies])"
-    displayResult = displayResult*"  "
-    displayResult = displayResult*"$(grid[i, :obsMinusCalc])"
-    println(displayResult)
-end
-println("rms:")
+# for i in 1:size(grid)[1]
+#     global displayResult = ""
+#     gridCoordinates = grid[i, 1]
+#     for j in 1:numberOfModes
+#         displayResult = displayResult*"$(gridCoordinates[j])"*" "
+#     end
+#     displayResult = displayResult*" "
+#     displayResult = displayResult*"$(grid[i, :E])"
+#     displayResult = displayResult*"  "
+#     displayResult = displayResult*"$(grid[i, :fittedEnergies])"
+#     displayResult = displayResult*"  "
+#     displayResult = displayResult*"$(grid[i, :obsMinusCalc])"
+#     println(displayResult)
+# end
+println(grid)
+println("Total rms:")
 println(sqrt(mean(grid[:, :obsMinusCalc].^2)))
+println("rms for energies below 10000 cm-1:")
+println(sqrt(mean(filter(row -> row.E <= 10000, grid)[:, :obsMinusCalc].^2)))
+println("rms for energies below 5000 cm-1:")
+println(sqrt(mean(filter(row -> row.E <= 5000, grid)[:, :obsMinusCalc].^2)))
+println("rms for energies below 1000 cm-1:")
+println(sqrt(mean(filter(row -> row.E <= 1000, grid)[:, :obsMinusCalc].^2)))
 println("Error in parameters: ")
 println(error)

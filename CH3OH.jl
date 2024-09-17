@@ -120,25 +120,38 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     # a1::Float64 = 1.44
     # a2::Float64 = 1.66
     # b1::Float64 = 1.55
-    rCOeq::Float64 = 1.42214934
-    rOHeq::Float64 = 0.95552007
-    rH1eq::Float64 = 1.09109223
-    alphaCOHeq::Float64 = 108.36849877*convertToRadians
+    # rCOeq::Float64 = 1.42214934
+    # rOHeq::Float64 = 0.95552007
+    # rH1eq::Float64 = 1.09109223
+    # alphaCOHeq::Float64 = 108.36849877*convertToRadians
+    # alphaOCHeq::Float64 = 112.68916948*convertToRadians
+    # a1::Float64 = 1.86914479
+    # a2::Float64 = 2.28541638
+    # b1::Float64 = 1.90474151
+    # Old 1D torsion = 0
+    # rCOeq::Float64 = 1.42214934 
+    # rOHeq::Float64 = 0.95552007
+    # alphaCOHeq::Float64 = 108.20547888*convertToRadians  
+    # alphaOCHeq::Float64 = 112.68916948*convertToRadians
+    # a1::Float64 = 1.86914479  
+    # a2::Float64 = 2.28541638  
+    # b1::Float64 = 1.90474151  
+    # New 1D torsion = 60
+    rCOeq::Float64 = 1.41776612
+    rOHeq::Float64 = 0.95729949
+    alphaCOHeq::Float64 = 108.20547888*convertToRadians  
     alphaOCHeq::Float64 = 112.68916948*convertToRadians
-    a1::Float64 = 1.86914479
-    a2::Float64 = 2.28541638
-    b1::Float64 = 1.90474151
+    a1::Float64 = 1.86582557  
+    a2::Float64 = 2.29169530  
+    b1::Float64 = 1.94351701  
     xi::Vector{Float64} = zeros(Float64, 12)
     
     # Stretches
     xi[1] = 1.00 - exp(-a1*(localModeCoordinates[1] - rCOeq))
     xi[2] = 1.00 - exp(-a2*(localModeCoordinates[2] - rOHeq))
-    xi[3] = 1.00 - exp(-b1*(localModeCoordinates[3] - rH1eq))
-    xi[4] = 1.00 - exp(-b1*(localModeCoordinates[4] - rH1eq))
-    xi[5] = 1.00 - exp(-b1*(localModeCoordinates[5] - rH1eq))
 
     # Angles
-    xi[6] = cos(localModeCoordinates[6]*convertToRadians) - cos(alphaCOHeq)
+    xi[6] = localModeCoordinates[6]*convertToRadians - alphaCOHeq
     xi[7] = localModeCoordinates[7]*convertToRadians - alphaOCHeq
     xi[8] = localModeCoordinates[8]*convertToRadians - alphaOCHeq
     xi[9] = localModeCoordinates[9]*convertToRadians - alphaOCHeq
@@ -156,6 +169,23 @@ function generateXiCoordinates(localModeCoordinates::Vector{Float64})::Vector{Fl
     # Torsion angle
     tau::Float64 = ((localModeCoordinates[10] + localModeCoordinates[11] + localModeCoordinates[12])*convertToRadians - 2*pi)/3
     xi[12] = tau
+
+    # MEP bond length parameters
+    # rHeq::Float64 = 1.09109223
+    # rH0::Float64 =  1.09067680e+00
+    # rH1::Float64 =  2.55610464e-03
+    # rH2::Float64 = -2.14357226e-03
+    # rH3::Float64 = -1.36305689e-04
+    rH0::Float64 = 1.09317584
+    rH1::Float64 =  0.00
+    rH2::Float64 =  0.00
+    rH3::Float64 =  0.00
+    rH1eq::Float64 = rH0 + rH1*cos(tau) + rH2*cos(2.0*tau)+rH3*cos(3.0*tau)
+    rH2eq::Float64 = rH0 + rH1*cos(tau+2.0*pi/3.0) + rH2*cos(2.0*(tau+2.0*pi/3.0))+rH3*cos(3.0*(tau+2.0*pi/3.0))
+    rH3eq::Float64 = rH0 + rH1*cos(tau+4.0*pi/3.0) + rH2*cos(2.0*(tau+4.0*pi/3.0))+rH3*cos(3.0*(tau+4.0*pi/3.0))
+    xi[3] = 1.00 - exp(-b1*(localModeCoordinates[3] - rH1eq))
+    xi[4] = 1.00 - exp(-b1*(localModeCoordinates[4] - rH2eq))
+    xi[5] = 1.00 - exp(-b1*(localModeCoordinates[5] - rH3eq))
 
     return xi
 end
@@ -210,7 +240,7 @@ function setupFitVariables(grid::DataFrame, symmetryOperations::Array{Float64}, 
             end
         end
     end
-    return xiPowers
+    return xiPowers./6
 end
 
 function computePotentialEnergy(xiCoordinates::Vector{Float64}, expansionCoefficients::DataFrame, symmetryOperations::Array{Float64})::Float64
