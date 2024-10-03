@@ -4,11 +4,11 @@ using Printf
 # dihedralSpacing::Vector{Float64} = [0.0,5.0,-5.0,10.0,-10.0,40.0,-40.0,60.0,-60.0,80.0,-80.0,100.0]
 # torsionSpacing::Vector{Float64} = [0.00, 10.00,20.0,30.0,40.0,50.0,60.0,70.0,80.0,90.,110.0,120.0]
 
-stretchesSpacing::Vector{Float64} = [0.0000, 0.050, -0.0500, -0.1000, 0.1000, 0.200, 
+stretchesSpacing::Vector{Float64} = [0.0000, -0.025,0.025, 0.050, -0.0500, -0.1000, 0.1000, 0.1500, -0.1500, 0.200, 
    -0.200, 0.300, -0.300, 0.400, 0.500, 0.600, 0.700]
-angleSpacing::Vector{Float64} = [0.0000, 5.0000, -5.0000, 10.0000, -10.0000, 20.0000, 
+angleSpacing::Vector{Float64} = [0.0000, 2.500, -2.5000, 5.0000, -5.0000, 7.500, -7.500, 10.0000, -10.0000, 20.0000, 
     -20.0000, 30.0000, -30.0000, 50.0000, -50.0000, 60.0000]
-dihedralSpacing::Vector{Float64} = [0.0000, 5.0000, -5.0000, 10.0000, -10.0000, 40.0000, 
+dihedralSpacing::Vector{Float64} = [0.0000, 2.5000, -2.5000, 5.0000, -5.0000, 7.500, -7.500, 10.0000, -10.0000, 40.0000, 
     -40.0000, 60.0000, -60.0000, 80.0000, -80.0000, 100.0000]
 torsionSpacing::Vector{Float64} = [0.0000, 5.0000, 10.0000, 15.0000, 20.00000, 25.000, 30.0000, 35.0000, 40.0000, 45.0000, 50.0000, 55.0000, 60.0000]
 
@@ -62,16 +62,16 @@ ahh3::Float64 = 240.0+tau-1.0/6.0*sqrt(2.0)*SbEq+1.0/6.0*sqrt(6.0)*SaEq
 rCOeq::Float64 =                1.42077677
 rOHeq::Float64=                 0.96013932
 aCOHeq::Float64=              108.12930637
-rCH1eq::Float64=                1.09108970
-aOCH1eq::Float64=             111.95221297
 aHH1eq::Float64=               61.43364279
-rCH2eq::Float64=                1.08555104
-aOCH2eq::Float64=             106.58134561
 aHH2eq::Float64=              180.00000000
-rCH3eq::Float64=                1.09108970
-aOCH3eq::Float64=             111.95221297
 aHH3eq::Float64=              298.56635721
 tauEq::Float64 = 60.00000
+rCH1eq::Float64=             EqCH(tauEq)         #1.09108970
+rCH2eq::Float64=             EqCH(tauEq + 120)   #1.08555104
+rCH3eq::Float64=             EqCH(tauEq + 240)    #1.09108970
+aOCH1eq::Float64=            EqaHCO(tauEq)        #111.95221297
+aOCH2eq::Float64=            EqaHCO(tauEq + 120)  #106.58134561
+aOCH3eq::Float64=            EqaHCO(tauEq + 240)  #111.95221297
 equilibriumGrid::Vector{Float64} = [rCOeq, rOHeq, rCH1eq, rCH2eq, rCH3eq, aCOHeq, aOCH1eq, aOCH2eq, aOCH3eq, aHH1eq, aHH2eq, aHH3eq]
 
 function PrintGeometry(grid::Vector{Float64})
